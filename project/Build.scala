@@ -32,7 +32,7 @@ object Kestrel extends Build {
       "com.twitter.common.zookeeper" % "server-set" % "1.0.16",
 
       // for tests only:
-      "org.scala-tools.testing" %% "specs" % "1.6.9" % "test",
+      "org.scala-tools.testing" % "specs_2.9.1" % "1.6.9" % "test",
       "org.jmock" % "jmock" % "2.4.0" % "test",
       "cglib" % "cglib" % "2.1_3" % "test",
       "asm" % "asm" % "1.5.3" % "test",
