@@ -17,9 +17,11 @@ libraryDependencies ++= Seq(
   "com.twitter" % "finagle-ostrich4" % "5.3.19",
   "com.twitter" % "finagle-thrift" % "5.3.19",
   "com.twitter" %% "scrooge-runtime" % "3.1.5"
-    exclude("com.twitter", "finagle-core")
-    exclude("com.twitter", "finagle-thrift"),
-  "com.twitter.common.zookeeper" % "server-set" % "1.0.16",
+    exclude("com.twitter", "finagle-core_2.9.2")
+    exclude("com.twitter", "finagle-thrift_2.9.2")
+    exclude("com.twitter", "util-core_2.9.2"),
+  "com.twitter.common.zookeeper" % "server-set" % "1.0.16"
+    exclude("com.twitter.common", "args"),
   "org.scala-tools.testing" %% "specs" % "1.6.9" % "test",
   "org.jmock" % "jmock" % "2.4.0" % "test",
   "cglib" % "cglib" % "2.1_3" % "test",
