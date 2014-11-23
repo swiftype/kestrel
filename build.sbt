@@ -1,3 +1,5 @@
+com.twitter.sbt.StandardProject.newSettings
+
 com.twitter.scrooge.ScroogeSBT.newSettings
 
 name := "kestrel"
@@ -33,3 +35,5 @@ parallelExecution in Test := false
 mainClass in Compile := Some("net.lag.kestrel.Kestrel")
 
 publishArtifact in Test := true
+
+packageDistConfigFilesValidationRegex := Some(".*")

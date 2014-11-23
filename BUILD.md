@@ -7,7 +7,7 @@ Use sbt
 Use sbt to build kestrel.
 
     $ brew install sbt
-    $ sbt package
+    $ sbt package-dist
 
 Create IntelliJ Project
 -----------------------
