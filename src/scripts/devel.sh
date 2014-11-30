@@ -11,8 +11,11 @@ echo "logs:   /var/log/kestrel"
 echo "queues: /var/spool/kestrel"
 
 # find jar no matter what the root dir name
-SCRIPT_DIR=$(cd `dirname "$0"`; pwd)
-ROOT_DIR=`dirname "$SCRIPT_DIR"`
-source $SCRIPT_DIR/base.sh
-JAR=$(find_jar $ROOT_DIR)
-java -server -Xmx1024m -Dstage=development -jar $JAR -f $ROOT_DIR/config/development.scala
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  cd "$(dirname "$SOURCE")"
+  SOURCE="$(readlink "$SOURCE")"
+done
+ROOT_DIR="$(cd -P "$(dirname "$SOURCE")"/.. && pwd)"
+
+java -server -Xmx1024m -Dstage=development -jar "$ROOT_DIR"/@DIST_NAME@-@VERSION@.jar

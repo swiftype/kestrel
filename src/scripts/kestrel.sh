@@ -11,7 +11,12 @@ APP_NAME="kestrel"
 ADMIN_PORT="2223"
 VERSION="@VERSION@"
 SCALA_VERSION="2.9.2"
-APP_HOME="/usr/local/$APP_NAME/current"
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  cd "$(dirname "$SOURCE")"
+  SOURCE="$(readlink "$SOURCE")"
+done
+APP_HOME="$(cd -P "$(dirname "$SOURCE")"/.. && pwd)"
 INITIAL_SLEEP=15
 
 source base.sh
