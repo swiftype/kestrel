@@ -33,14 +33,14 @@ JAVA_OPTS="-server -Dstage=$STAGE $GC_OPTS $GC_TRACE $GC_LOG $HEAP_OPTS $DEBUG_O
 pidfile="/var/run/$APP_NAME/$APP_NAME.pid"
 
 running() {
-  kill -0 `cat $pidfile`
+  [ -e $pidfile ] && kill -0 `cat $pidfile` >/dev/null 2>&1
 }
 
 find_java() {
   if [ ! -z "$JAVA_HOME" ]; then
     return
   fi
-  for dir in /opt/jdk /System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Home /usr/java/default; do
+  for dir in /opt/jdk /System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Home /usr/java/default /usr/lib/jvm/jre; do
     if [ -x $dir/bin/java ]; then
       JAVA_HOME=$dir
       break
@@ -76,7 +76,7 @@ case "$1" in
     ulimit -n $FD_LIMIT || echo -n " (no ulimit)"
     ulimit -c unlimited || echo -n " (no coredump)"
 
-    sh -c "echo "'$$'" > $pidfile; exec ${JAVA_HOME}/bin/java ${JAVA_OPTS} -jar $JAR >> /var/log/$APP_NAME/stdout 2>> /var/log/$APP_NAME/error" &
+    sh -c "echo "'$$'" > $pidfile; exec ${JAVA_HOME}/bin/java ${JAVA_OPTS} -jar ${APP_HOME}/${JAR_NAME} >> /var/log/$APP_NAME/stdout 2>> /var/log/$APP_NAME/error" &
     disown %-
     sleep $INITIAL_SLEEP
 
