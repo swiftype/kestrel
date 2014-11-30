@@ -146,7 +146,7 @@ case "$1" in
   ;;
 
   *)
-    echo "Usage: /etc/init.d/${APP_NAME}.sh {start|stop|restart|status}"
+    echo "Usage: $0 {start|stop|restart|status}"
     exit 1
   ;;
 esac
