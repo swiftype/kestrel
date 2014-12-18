@@ -10,6 +10,10 @@ version := "2.4.2-SNAPSHOT"
 
 scalaVersion := "2.9.2"
 
+resolvers ++= Seq(
+  "twitter" at "http://maven.twttr.com/"
+)
+
 libraryDependencies ++= Seq(
   "com.twitter" % "ostrich" % "8.2.9",
   "com.twitter" %% "naggati" % "4.1.0",
