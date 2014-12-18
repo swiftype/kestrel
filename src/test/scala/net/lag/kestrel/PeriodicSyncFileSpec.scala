@@ -22,10 +22,10 @@ import com.twitter.logging.TestLogging
 import com.twitter.util.Duration
 import java.util.concurrent._
 import java.util.concurrent.atomic.AtomicInteger
-import org.specs.Specification
+import org.specs.SpecificationWithJUnit
 import org.specs.matcher.Matcher
 
-class PeriodicSyncFileSpec extends Specification
+class PeriodicSyncFileSpec extends SpecificationWithJUnit
   with TestLogging
   with QueueMatchers
 {

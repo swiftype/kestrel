@@ -23,10 +23,10 @@ import com.twitter.ostrich.admin.RuntimeEnvironment
 import com.twitter.util.{Future, Promise, Time}
 import java.net.InetSocketAddress
 import org.jboss.netty.buffer.ChannelBuffers
-import org.specs.Specification
+import org.specs.SpecificationWithJUnit
 import org.specs.mock.{ClassMocker, JMocker}
 
-class TextHandlerSpec extends Specification with JMocker with ClassMocker {
+class TextHandlerSpec extends SpecificationWithJUnit with JMocker with ClassMocker {
   def wrap(s: String) = ChannelBuffers.wrappedBuffer(s.getBytes)
 
   type ClientDesc = Option[() => String]

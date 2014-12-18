@@ -22,10 +22,10 @@ import com.twitter.logging.TestLogging
 import com.twitter.ostrich.stats.Stats
 import com.twitter.util.{Duration, MockTimer, TempFolder, Time, TimeControl}
 import java.io._
-import org.specs.Specification
+import org.specs.SpecificationWithJUnit
 import org.specs.mock.{ClassMocker, JMocker}
 
-class ServerStatusSpec extends Specification with JMocker with ClassMocker with TempFolder
+class ServerStatusSpec extends SpecificationWithJUnit with JMocker with ClassMocker with TempFolder
 with TestLogging {
   val mockTimer: MockTimer = new MockTimer
 

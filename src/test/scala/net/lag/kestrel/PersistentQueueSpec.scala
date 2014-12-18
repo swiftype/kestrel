@@ -25,11 +25,11 @@ import com.twitter.conversions.time._
 import com.twitter.ostrich.stats.Stats
 import com.twitter.logging.TestLogging
 import com.twitter.util.{Duration, TempFolder, Time, Timer, TimerTask}
-import org.specs.Specification
+import org.specs.SpecificationWithJUnit
 import org.specs.matcher.Matcher
 import config._
 
-class PersistentQueueSpec extends Specification
+class PersistentQueueSpec extends SpecificationWithJUnit
   with TempFolder
   with TestLogging
   with QueueMatchers
