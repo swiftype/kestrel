@@ -31,7 +31,8 @@ libraryDependencies ++= Seq(
   "cglib" % "cglib" % "2.1_3" % "test",
   "asm" % "asm" % "1.5.3" % "test",
   "org.objenesis" % "objenesis" % "1.1" % "test",
-  "org.hamcrest" % "hamcrest-all" % "1.1" % "test"
+  "org.hamcrest" % "hamcrest-all" % "1.1" % "test",
+  "junit" % "junit" % "4.12" % "test"
 )
 
 logBuffered in Test := false

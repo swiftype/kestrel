@@ -1345,7 +1345,7 @@ class PersistentQueueSpec extends SpecificationWithJUnit
       }.apply()
       val q = new PersistentQueue("mem", new BlockingContainer(Duration.Top), config, timer, None)
       q.setup()
-      val futureWrite = q.addDurable("kombucha".getBytes) 
+      val futureWrite = q.addDurable("kombucha".getBytes)
       futureWrite.isDefined mustEqual true
       Await.result(futureWrite.get, 1.milliseconds) must throwA[com.twitter.util.TimeoutException]
     }
@@ -1358,9 +1358,9 @@ class PersistentQueueSpec extends SpecificationWithJUnit
       q.setup()
 
       // future must not throw
-      val futureWrite = q.addDurable("artisanal matcha".getBytes) 
+      val futureWrite = q.addDurable("artisanal matcha".getBytes)
       futureWrite.isDefined mustEqual true
-      Await.result(futureWrite.get, 30.seconds) 
+      Await.result(futureWrite.get, 30.seconds)
     }
 
     "succeed immediately for immediately completed future" in {
@@ -1371,9 +1371,9 @@ class PersistentQueueSpec extends SpecificationWithJUnit
       q.setup()
 
       // future must not throw
-      val futureWrite = q.addDurable("non fat double chocolate chip frappuccino".getBytes) 
+      val futureWrite = q.addDurable("non fat double chocolate chip frappuccino".getBytes)
       futureWrite.isDefined mustEqual true
-      Await.result(futureWrite.get, Duration.Bottom) 
+      Await.result(futureWrite.get, Duration.Bottom)
     }
   }
 }
