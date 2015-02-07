@@ -11,7 +11,8 @@ version := "2.4.2-SNAPSHOT"
 scalaVersion := "2.9.2"
 
 resolvers ++= Seq(
-  "twitter" at "http://maven.twttr.com/"
+  "twitter" at "http://maven.twttr.com/",
+  "sonatype" at "https://oss.sonatype.org/content/repositories/scala-tools"
 )
 
 libraryDependencies ++= Seq(
