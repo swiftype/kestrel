@@ -26,15 +26,17 @@ object Rpmbuild extends Plugin {
 
   val rpmbuildRelease = SettingKey[Int]("rpmbuildRevision", "Revision number for rpm package.")
 
-  val rpmbuild = TaskKey[File]("rpmbuild", "Build rpm package from spec file.")
+  val rpmbuild = TaskKey[Seq[File]]("rpmbuild", "Build rpm package from spec file.")
 
   private val rpmbuildTask = (
+    streams,
     target,
     packageDist,
     version,
     gitProjectSha,
     rpmbuildRelease
   ).map { (
+      streams: TaskStreams,
       target: File,
       zip: File,
       version: String,
@@ -61,10 +63,20 @@ object Rpmbuild extends Plugin {
 
     // Run rpmbuild comment
     val rpmbuild = Process(Seq("rpmbuild", "-ba", "-D", "_topdir %s".format(dirs.base.absolutePath), specFile.absolutePath), dirs.base)
-    rpmbuild.run().exitValue() match {
-      case 0 => dirs.rpms / "kestrel.rpm" // FIXME use real rpm name, also may want to move it to dist directory.
-      case _ => sys.error("Fail to rpmbuild")
+    val wrotePattern = """^Wrote: (.+)""".r
+    val files = rpmbuild.lines.foldLeft(Seq[File]()) { (files, line) =>
+      streams.log.info(line)
+      // Parse output to detect written file path.
+      line match {
+        case wrotePattern(path) => files :+ new File(path)
+        case _ => files
+      }
     }
+
+    // Copy files to dist
+    files.foreach(file => IO.copyFile(file, zip.getParentFile / file.name))
+
+    files
   }
 
   val newSettings = Seq(
