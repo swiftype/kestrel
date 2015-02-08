@@ -1,3 +1,5 @@
+Twirl.settings
+
 resolvers ++= Seq(
   "twitter" at "http://maven.twttr.com/"
 )

@@ -1,0 +1,98 @@
+@(zipName: String, version: String, commit: Option[String], release: Int)
+
+%define kestrelname @zipName
+%define kestrelver @version
+@if(commit.isDefined) {
+%define kestrelcommit @commit
+}
+%define kestrelrelease @release
+
+%define _prefix /opt/kestrel-%{kestrelver}%{?kestrelcommit:-SNAPSHOT}
+
+Summary: Simple, distributed message queue
+Name: kestrel
+Version: %{kestrelver}
+Release: %{kestrelrelease}%{?kestrelcommit:.SNAPSHOT.%{kestrelcommit}}%{?dist}
+Group: Development/Languages
+License: ASL 2.0
+URL: https://github.com/niw/kestrel
+Source: %{kestrelname}.zip
+
+BuildArch: noarch
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+BuildRequires: unzip
+
+Requires: jre >= 1.6.0
+
+# These are required by startup scripts.
+Requires: bash
+Requires: ruby
+Requires: curl
+
+# Disable relocatable rpm.
+#Prefix: %{_prefix}
+
+%description
+Kestrel is based on Blaine Cook's "starling" simple, distributed message queue,
+with added features and bulletproofing, as well as the scalability offered by actors and the JVM.
+
+%prep
+# Kestrel distribution zip doesn't contain top directory.
+# Need to create it by giving -c
+%setup -c
+
+%build
+mkdir bin
+
+cp -p scripts/console bin/console
+cp -p scripts/devel.sh bin/kestrel-devel
+cp -p scripts/ksniff bin/ksniff
+cp -p scripts/qdump.sh bin/qdump
+cp -p scripts/qpack.sh bin/qpack
+cp -p scripts/kestrel.sh bin/kestrel
+
+rm -rf scripts
+
+%install
+[ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
+
+mkdir -p $RPM_BUILD_ROOT/%{_prefix}
+mkdir -p $RPM_BUILD_ROOT/var/log/kestrel
+mkdir -p $RPM_BUILD_ROOT/var/run/kestrel
+
+cp -Rp . $RPM_BUILD_ROOT/%{_prefix}/
+
+mkdir -p $RPM_BUILD_ROOT/etc/sysconfig
+cat <<END_OF_FILE > $RPM_BUILD_ROOT/etc/sysconfig/kestrel
+# Local kestrel configuration.
+#HEAP_OPTS="-Xmx4096m -Xms4096m -XX:NewSize=768m"
+#GC_OPTS="-XX:+UseConcMarkSweepGC -XX:+UseParNewGC"
+#GC_TRACE="-XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+PrintTenuringDistribution -XX:+PrintHeapAtGC"
+#GC_LOG="-Xloggc:/var/log/kestrel/gc.log"
+#DEBUG_OPTS="-XX:ErrorFile=/var/log/kestrel/java_error%p.log"
+END_OF_FILE
+
+%clean
+[ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-, root, root)
+%dir %{_prefix}
+%config(noreplace) %{_prefix}/config
+%attr(0755, -, -) %{_bindir}
+%{_prefix}/libs
+%{_prefix}/kestrel*.jar
+%config(noreplace) /etc/sysconfig/kestrel
+%dir /var/log/kestrel
+%dir /var/run/kestrel
+
+%changelog
+* Sat Feb 7 2015 Yoshimasa Niwa <niw@@niw.at>
+- Convert to the template for rpmbuild sbt task.
+
+* Sun Nov 30 2014 Yoshimasa Niwa <niw@@niw.at>
+- Fix startup scripts.
+- Remove patch.
+
+* Sat Nov 29 2014 Yoshimasa Niwa <niw@@niw.at>
+- Initial.
