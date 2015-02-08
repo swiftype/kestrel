@@ -2,6 +2,8 @@ com.twitter.sbt.StandardProject.newSettings
 
 com.twitter.scrooge.ScroogeSBT.newSettings
 
+Rpmbuild.newSettings
+
 name := "kestrel"
 
 organization := "net.lag"
@@ -45,3 +47,5 @@ mainClass in Compile := Some("net.lag.kestrel.Kestrel")
 publishArtifact in Test := true
 
 packageDistConfigFilesValidationRegex := Some(".*")
+
+rpmbuildRelease := 1
