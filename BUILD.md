@@ -15,6 +15,20 @@ Create IntelliJ Project
 Use latest IntelliJ which supprots sbt project.
 Simply import project directory as sbt project then it works.
 
+Create RPM package
+------------------
+
+Use sbt to create a RPM package.
+
+    $ sbt rpmbuild
+
+The SPEC file is generated from `project/src/main/twirl/KestrelSpec.scala.txt`,
+which is [twirl](https://github.com/spray/twirl) template.
+
+Give `rpmbiuldRelease` setting key in `build.sbt` to update the release number.
+
+    rpmbuildRelease := 1
+
 Running it in debug mode
 ------------------------
 
