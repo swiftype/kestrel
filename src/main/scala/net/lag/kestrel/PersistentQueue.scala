@@ -89,6 +89,13 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
   val totalFlushes = Stats.getCounter(statNamed("total_flushes"))
   totalFlushes.reset()
 
+  val totalRewrites = Stats.getCounter(statNamed("journal_rewrites"))
+  totalRewrites.reset()
+  val totalRotates = Stats.getCounter(statNamed("journal_rotations"))
+  totalRotates.reset()
+
+  private var allowRewrites = true
+
   // # of items in the queue (including those not in memory)
   private var queueLength: Long = 0
 
@@ -146,7 +153,9 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
       ("open_transactions", openTransactionCount.toString),
       ("transactions", totalTransactions().toString),
       ("canceled_transactions", totalCanceledTransactions().toString),
-      ("total_flushes", totalFlushes().toString)
+      ("total_flushes", totalFlushes().toString),
+      ("journal_rewrites", totalRewrites().toString),
+      ("journal_rotations", totalRotates().toString)
     )
   }
 
@@ -193,21 +202,96 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
     }
   }
 
+  private def disallowRewritesForDelay() {
+    config.minJournalCompactDelay.foreach { delay =>
+      allowRewrites = false
+      timer.schedule(delay.fromNow) {
+        PersistentQueue.this.synchronized { allowRewrites = true }
+      }
+    }
+  }
+  /**
+   * Check if this Queue has been enabled for client tracing
+   */
+  def shouldTraceQOps: Boolean = {
+    config.enableTrace
+  }
+
   // you are holding the lock, and config.keepJournal is true.
   private def checkRotateJournal() {
     /*
      * if the queue is empty, and the journal is larger than defaultJournalSize, rebuild it.
+     * if the queue is smaller than maxMemorySize, and the combined journals are larger than
+     *   maxJournalSize, rebuild them. (we are not in read-behind.)
      * if the current journal is larger than maxMemorySize, rotate to a new file. if the combined
      *   journals are larger than maxJournalSize, checkpoint in preparation for rebuilding the
      *   older files in the background.
      */
-    if ((journal.size >= config.defaultJournalSize.inBytes && queueLength == 0)) {
-      log.info("Rewriting journal file for '%s' (qsize=%d)", name, queueSize)
-      journal.rewrite(openTransactionIds.map { openTransactions(_) }, queue)
-    } else if (journal.size > config.maxMemorySize.inBytes) {
-      log.info("Rotating journal file for '%s' (qsize=%d)", name, queueSize)
-      val setCheckpoint = (journal.size + journal.archivedSize > config.maxJournalSize.inBytes)
-      journal.rotate(openTransactionIds.map { openTransactions(_) }, setCheckpoint)
+    if (!config.disableAggressiveRewrites) {
+      if (journal.size >= config.defaultJournalSize.inBytes && queueLength == 0) {
+        log.info("Rewriting journal file for '%s' (qsize=0)", name)
+        journal.rewrite(openTransactionIds.map { openTransactions(_) }, queue)
+        totalRewrites.incr()
+      } else if (allowRewrites &&
+        journal.size + journal.archivedSize > config.maxJournalSize.inBytes &&
+        queueSize < config.maxMemorySize.inBytes) {
+        log.info("Rewriting journal file for '%s' (qsize=%d)", name, queueSize)
+        journal.rewrite(openTransactionIds.map { openTransactions(_) }, queue)
+        totalRewrites.incr()
+        config.minJournalCompactDelay.foreach { delay =>
+          allowRewrites = false
+          timer.schedule(delay.fromNow) {
+            PersistentQueue.this.synchronized { allowRewrites = true }
+          }
+        }
+      } else if (journal.size > config.maxMemorySize.inBytes) {
+        log.info("Rotating journal file for '%s' (qsize=%d)", name, queueSize)
+        val setCheckpoint = (journal.size + journal.archivedSize > config.maxJournalSize.inBytes)
+        journal.rotate(openTransactionIds.map { openTransactions(_) }, setCheckpoint)
+        totalRotates.incr()
+      }
+    } else {
+      if (allowRewrites &&
+          journal.size >= config.defaultJournalSize.inBytes &&
+          queueLength == 0) {
+        log.info("Rewriting journal file for '%s' (qsize=0)", name)
+        journal.rewrite(openTransactionIds.map { openTransactions(_) }, queue)
+        totalRewrites.incr()
+        /* KEST 366 - This condition is supposed to be opportunistic and is done frequently
+         * with the hope that the journal shrinks to a very small size at the end of this operation
+         * as the queue is empty.
+         * This assumption is however untrue if there are a large number of open transactions,
+         * if after rewrite we end up with a size greater than half the default size,
+         * take a break before attempting to rewrite again
+         */
+        if (journal.size >= (config.defaultJournalSize.inBytes / 2)) {
+            disallowRewritesForDelay()
+          }
+      } else if (allowRewrites &&
+                 journal.size + journal.archivedSize > config.maxJournalSize.inBytes &&
+                 queueSize < config.maxMemorySize.inBytes) {
+        log.info("Rewriting journal file for '%s' (qsize=%d)", name, queueSize)
+        journal.rewrite(openTransactionIds.map { openTransactions(_) }, queue)
+        totalRewrites.incr()
+        disallowRewritesForDelay()
+      } else if (journal.size > config.maxMemorySize.inBytes) {
+        /*
+         * If the queue is empty, we should First try re-writing -
+         * only if that doesn't help, then rotate the journals
+         */
+        if (queueLength == 0) {
+          log.info("Rewriting journal file for '%s' (qsize=0)", name)
+          journal.rewrite(openTransactionIds.map { openTransactions(_) }, queue)
+          totalRewrites.incr()
+        }
+
+        if (journal.size > config.maxMemorySize.inBytes) {
+          log.info("Rotating journal file for '%s' (qsize=%d)", name, queueSize)
+          val setCheckpoint = (journal.size + journal.archivedSize > config.maxJournalSize.inBytes)
+          journal.rotate(openTransactionIds.map { openTransactions(_) }, setCheckpoint)
+          totalRotates.incr()
+        }
+      }
     }
   }
 
@@ -217,6 +301,7 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
       if (config.keepJournal) {
         log.info("Rewriting journal file for '%s' (qsize=%d)", name, queueSize)
         journal.rewrite(openTransactionIds.map { openTransactions(_) }, queue)
+        totalRewrites.incr()
       }
     }
   }
@@ -233,6 +318,7 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
         _remove(false, None)
         totalDiscarded.incr()
         if (config.keepJournal) journal.remove()
+        fillReadBehind()
       }
 
       val item = QItem(addTime, adjustExpiry(Time.now, expiry), value, 0)
@@ -295,6 +381,7 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
         val item = _remove(transaction, None)
         if (config.keepJournal && item.isDefined) {
           if (transaction) journal.removeTentative(item.get.xid) else journal.remove()
+          fillReadBehind()
           checkRotateJournal()
         }
 
@@ -415,7 +502,19 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
    * Close the queue's journal file. Not safe to call on an active queue.
    */
   def close() {
+    close(false)
+  }
+
+    /**
+   * Close the queue's journal file. Not safe to call on an active queue.
+   */
+  def close(gracefulShutdown: Boolean) {
     synchronized {
+      if ((gracefulShutdown) && (0 == queueLength)) {
+        log.info("Rewriting journal file during graceful shutdown for '%s' (qsize=0)", name)
+        journal.rewrite(openTransactionIds.map { openTransactions(_) }, queue)
+        totalRewrites.incr()
+      }
       closed = true
       if (config.keepJournal) journal.close()
       waiters.triggerAll()
@@ -438,6 +537,7 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
   def setup() {
     synchronized {
       queueSize = 0
+      queueLength = 0
       replayJournal()
     }
   }
@@ -460,6 +560,8 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
     Stats.removeCounter(statNamed("canceled_transactions"))
     Stats.removeCounter(statNamed("discarded"))
     Stats.removeCounter(statNamed("total_flushes"))
+    Stats.removeCounter(statNamed("journal_rewrites"))
+    Stats.removeCounter(statNamed("journal_rotations"))
     Stats.clearGauge(statNamed("items"))
     Stats.clearGauge(statNamed("bytes"))
     Stats.clearGauge(statNamed("journal_size"))
@@ -514,21 +616,26 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
           log.info("Dropping to read-behind for queue '%s' (%d bytes)", name, queueSize)
           journal.startReadBehind()
         }
-      case JournalItem.Remove => _remove(false, None)
+      case JournalItem.Remove =>
+        _remove(false, None)
+        journal.notifyRemoveDuringReplay()
       case JournalItem.RemoveTentative(xid) =>
         _remove(true, Some(xid))
         xidCounter = xid
       case JournalItem.SavedXid(xid) => xidCounter = xid
       case JournalItem.Unremove(xid) => _unremove(xid)
-      case JournalItem.ConfirmRemove(xid) => openTransactions.remove(xid)
+      case JournalItem.ConfirmRemove(xid) =>
+        openTransactions.remove(xid)
+        journal.notifyRemoveDuringReplay()
       case JournalItem.Continue(item, xid) =>
         openTransactions.remove(xid)
+        journal.notifyRemoveDuringReplay()
         _add(item)
       case x => log.error("Unexpected item in journal: %s", x)
     }
 
-    log.info("Finished transaction journal for '%s' (%d items, %d bytes) xid=%d", name, queueLength,
-             journal.size, xidCounter)
+    log.info("Finished transaction journal for '%s' (%d items, %d bytes) xid=%d, removes=%d", name, queueLength,
+             journal.size, xidCounter, journal.removesSinceReadBehind)
     journal.open()
 
     // now, any unfinished transactions must be backed out.
@@ -538,6 +645,21 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
     }
   }
 
+  /**
+   * Retrieves the oldest add time from the queue. This is only meant to be an estimate, which is
+   * why we don't synchronize access to the queue.
+   *
+   * This method is expensive and will return 0 if there are more than 10000 items.
+   * If there are no items in the queue, it will return current timestamp.
+   *
+   * @return oldest add time in milliseconds
+   */
+  def getOldestAddTime: Long = {
+    if (queueLength <= 10000)
+      queue.foldLeft(Time.now.inMilliseconds)((m, i) => scala.math.min(m, i.addTime.inMilliseconds))
+    else
+      0
+  }
 
   //  -----  internal implementations
 
@@ -568,7 +690,9 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
     queueSize -= len
     _memoryBytes -= len
     queueLength -= 1
-    fillReadBehind()
+    if (journal.isReplaying) {
+      fillReadBehind()
+    }
     _currentAge = item.addTime
     if (transaction) {
       item.xid = xid.getOrElse { nextXid() }
@@ -577,13 +701,13 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
     Some(item)
   }
 
-  final def discardExpired(limit: Boolean = false): Int = {
+  final def discardExpired(limit: Int = config.maxExpireSweep): Int = {
     val itemsToRemove = synchronized {
       var continue = true
+      val hasLimit = limit < Int.MaxValue
       val toRemove = new mutable.ListBuffer[QItem]
-      val hasLimit = limit && config.maxExpireSweep > 0
       while (continue) {
-        if (queue.isEmpty || (hasLimit && toRemove.size >= config.maxExpireSweep) || journal.isReplaying) {
+        if (queue.isEmpty || hasLimit && toRemove.length >= limit || journal.isReplaying) {
           continue = false
         } else {
           val realExpiry = adjustExpiry(queue.front.addTime, queue.front.expiry)
@@ -594,8 +718,8 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
             queueSize -= len
             _memoryBytes -= len
             queueLength -= 1
-            fillReadBehind()
             if (config.keepJournal) journal.remove()
+            fillReadBehind()
             toRemove += item
           } else {
             continue = false
