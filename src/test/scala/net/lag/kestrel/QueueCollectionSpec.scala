@@ -25,10 +25,10 @@ import com.twitter.util.{TempFolder, Time, Timer}
 import com.twitter.conversions.time._
 import com.twitter.conversions.storage._
 import com.twitter.ostrich.stats.Stats
-import org.specs.Specification
+import org.specs.SpecificationWithJUnit
 import config._
 
-class QueueCollectionSpec extends Specification with TempFolder with TestLogging with QueueMatchers {
+class QueueCollectionSpec extends SpecificationWithJUnit with TempFolder with TestLogging with QueueMatchers {
   private var qc: QueueCollection = null
 
   val config = new QueueBuilder().apply()

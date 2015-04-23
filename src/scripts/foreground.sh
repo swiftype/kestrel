@@ -1,11 +1,4 @@
 #!/bin/bash
-#
-# kestrel init.d script.
-#
-# All java services require the same directory structure:
-#   /usr/local/$APP_NAME
-#   /var/log/$APP_NAME
-#   /var/run/$APP_NAME
 
 APP_NAME="kestrel"
 ADMIN_PORT="2223"

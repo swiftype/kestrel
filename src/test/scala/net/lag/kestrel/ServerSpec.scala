@@ -26,10 +26,10 @@ import com.twitter.conversions.time._
 import com.twitter.logging.{Logger, TestLogging}
 import com.twitter.ostrich.admin.RuntimeEnvironment
 import com.twitter.util.{TempFolder, Time}
-import org.specs.Specification
+import org.specs.SpecificationWithJUnit
 import config._
 
-class ServerSpec extends Specification with TempFolder with TestLogging {
+class ServerSpec extends SpecificationWithJUnit with TempFolder with TestLogging {
   val PORT = 22199
   var kestrel: Kestrel = null
 

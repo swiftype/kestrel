@@ -25,7 +25,7 @@ import com.twitter.conversions.time._
 import com.twitter.logging.TestLogging
 import com.twitter.ostrich.stats.Stats
 import com.twitter.util.{TempFolder, Time, Timer}
-import org.specs.Specification
+import org.specs.SpecificationWithJUnit
 import org.specs.matcher.Matcher
 import org.specs.mock.{ClassMocker, JMocker}
 import config._
@@ -34,7 +34,7 @@ class FakeKestrelHandler(queues: QueueCollection, maxOpenTransactions: Int,
                          serverStatus: Option[ServerStatus] = None)
   extends KestrelHandler(queues, maxOpenTransactions, () => "none", 0, serverStatus) with SimplePendingReads
 
-class KestrelHandlerSpec extends Specification with JMocker with ClassMocker with TempFolder with TestLogging {
+class KestrelHandlerSpec extends SpecificationWithJUnit with JMocker with ClassMocker with TempFolder with TestLogging {
   val config = new QueueBuilder().apply()
 
   case class beString(expected: String) extends Matcher[Option[QItem]]() {

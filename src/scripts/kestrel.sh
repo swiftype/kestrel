@@ -11,7 +11,12 @@ APP_NAME="kestrel"
 ADMIN_PORT="2223"
 VERSION="@VERSION@"
 SCALA_VERSION="2.9.2"
-APP_HOME="/usr/local/$APP_NAME/current"
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  cd "$(dirname "$SOURCE")"
+  SOURCE="$(readlink "$SOURCE")"
+done
+APP_HOME="$(cd -P "$(dirname "$SOURCE")"/.. && pwd)"
 INITIAL_SLEEP=15
 
 JAR_NAME="${APP_NAME}_${SCALA_VERSION}-${VERSION}.jar"
@@ -30,20 +35,17 @@ test -f /etc/sysconfig/kestrel && . /etc/sysconfig/kestrel
 JAVA_OPTS="-server -Dstage=$STAGE $GC_OPTS $GC_TRACE $GC_LOG $HEAP_OPTS $DEBUG_OPTS"
 
 pidfile="/var/run/$APP_NAME/$APP_NAME.pid"
-# This second pidfile exists for legacy purposes, from the days when kestrel
-# was started by daemon(1)
-daemon_pidfile="/var/run/$APP_NAME/$APP_NAME-daemon.pid"
 
 
 running() {
-  kill -0 `cat $pidfile`
+  [ -e $pidfile ] && kill -0 `cat $pidfile` >/dev/null 2>&1
 }
 
 find_java() {
   if [ ! -z "$JAVA_HOME" ]; then
     return
   fi
-  for dir in /opt/jdk /System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Home /usr/java/default; do
+  for dir in /opt/jdk /System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Home /usr/java/default /usr/lib/jvm/jre; do
     if [ -x $dir/bin/java ]; then
       JAVA_HOME=$dir
       break
@@ -84,7 +86,7 @@ case "$1" in
     ulimit -n $FD_LIMIT || echo -n " (no ulimit)"
     ulimit -c unlimited || echo -n " (no coredump)"
 
-    sh -c "echo "'$$'" > $pidfile; echo "'$$'" > $daemon_pidfile; exec ${JAVA_HOME}/bin/java ${JAVA_OPTS} -jar ${APP_HOME}/${JAR_NAME} >> /var/log/$APP_NAME/stdout 2>> /var/log/$APP_NAME/error" &
+    sh -c "echo "'$$'" > $pidfile; exec ${JAVA_HOME}/bin/java ${JAVA_OPTS} -jar ${APP_HOME}/${JAR_NAME} >> /var/log/$APP_NAME/stdout 2>> /var/log/$APP_NAME/error" &
     disown %-
     sleep $INITIAL_SLEEP
 
@@ -113,8 +115,8 @@ case "$1" in
       tries=$((tries + 1))
       if [ $tries -ge 15 ]; then
         echo "FAILED SOFT SHUTDOWN, TRYING HARDER"
-        if [ -f $daemon_pidfile ]; then
-          kill $(cat $daemon_pidfile)
+        if [ -f pidfile ]; then
+          kill $(cat $pidfile)
         else
           echo "CAN'T FIND PID, TRY KILL MANUALLY"
           exit 1
@@ -124,7 +126,7 @@ case "$1" in
           hardtries=$((hardtries + 1))
           if [ $hardtries -ge 5 ]; then
             echo "FAILED HARD SHUTDOWN, TRY KILL -9 MANUALLY"
-            kill -9 $(cat $daemon_pidfile)
+            kill -9 $(cat $pidfile)
           fi
           sleep 1
         done
@@ -149,7 +151,7 @@ case "$1" in
   ;;
 
   *)
-    echo "Usage: /etc/init.d/${APP_NAME}.sh {start|stop|restart|status}"
+    echo "Usage: $0 {start|stop|restart|status}"
     exit 1
   ;;
 esac

@@ -23,11 +23,11 @@ import com.twitter.util.{Future, Promise, Time, TimeControl, MockTimer}
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import org.jboss.netty.buffer.ChannelBuffers
-import org.specs.Specification
+import org.specs.SpecificationWithJUnit
 import org.specs.mock.{ClassMocker, JMocker}
 import net.lag.kestrel.thrift.{Status => TStatus}
 
-class ThriftHandlerSpec extends Specification with JMocker with ClassMocker {
+class ThriftHandlerSpec extends SpecificationWithJUnit with JMocker with ClassMocker {
   def wrap(s: String) = ChannelBuffers.wrappedBuffer(s.getBytes)
 
   type ClientDesc = Option[() => String]
@@ -35,7 +35,7 @@ class ThriftHandlerSpec extends Specification with JMocker with ClassMocker {
   "ThriftHandler" should {
     val queueCollection = mock[QueueCollection]
     val connection = mock[ClientConnection]
-    val address = mock[InetSocketAddress]
+    val address = new InetSocketAddress(10000)
     val timer = new MockTimer()
 
     val item1 = "forty second songs".getBytes

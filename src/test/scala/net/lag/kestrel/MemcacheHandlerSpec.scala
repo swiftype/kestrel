@@ -24,11 +24,11 @@ import com.twitter.ostrich.admin.RuntimeEnvironment
 import com.twitter.util.{Future, Promise, Time}
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
-import org.specs.Specification
+import org.specs.SpecificationWithJUnit
 import org.specs.mock.{ClassMocker, JMocker}
 import scala.collection.mutable
 
-class MemcacheHandlerSpec extends Specification with JMocker with ClassMocker {
+class MemcacheHandlerSpec extends SpecificationWithJUnit with JMocker with ClassMocker {
   type ClientDesc = Option[() => String]
 
   "MemcacheHandler" should {

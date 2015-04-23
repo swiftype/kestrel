@@ -1,4 +1,9 @@
 #!/bin/bash
-DIST_HOME="$(dirname $(readlink $0 || echo $0))/../.."
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  cd "$(dirname "$SOURCE")"
+  SOURCE="$(readlink "$SOURCE")"
+done
+DIST_HOME="$(cd -P "$(dirname "$SOURCE")"/../.. && pwd)"
 TEST_JAR=$DIST_HOME/@DIST_NAME@-@VERSION@-test.jar
 java -server -classpath @DIST_CLASSPATH@:$TEST_JAR net.lag.kestrel.load.ManyClients "$@"
