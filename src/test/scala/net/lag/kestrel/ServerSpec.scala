@@ -38,7 +38,6 @@ class ServerSpec extends SpecificationWithJUnit with TempFolder with TestLogging
 
   def makeServer() {
     val defaultConfig = new QueueBuilder() {
-      defaultJournalSize = 12.kilobytes
       maxJournalSize = 16.kilobytes
     }.apply()
     // make a queue specify max_items and max_age
@@ -54,7 +53,7 @@ class ServerSpec extends SpecificationWithJUnit with TempFolder with TestLogging
     val statusFile = new File(canonicalFolderName, ".status")
     kestrel = new Kestrel(defaultConfig, List(weatherUpdatesConfig), List(aliasWeatherUpdatesConfig),
       "localhost", Some(PORT), None, None, canonicalFolderName, None, None, 1, None, statusFile.getPath,
-      Up, 30.seconds, None)
+      Up, 30.seconds, false, None)
     kestrel.start()
   }
 

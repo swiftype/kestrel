@@ -19,8 +19,6 @@ package net.lag.kestrel
 package config
 
 import com.twitter.common.zookeeper.{ServerSet, ZooKeeperClient, ZooKeeperUtils}
-import com.twitter.common_internal.zookeeper.TwitterServerSet
-import com.twitter.common_internal.zookeeper.TwitterServerSet.Service
 import com.twitter.conversions.storage._
 import com.twitter.conversions.time._
 import com.twitter.logging.Logger
@@ -35,10 +33,6 @@ case class ZooKeeperConfig(
   host: String,
   port: Int,
   pathPrefix: String,
-  roleSS: String,
-  envSS: String,
-  nameSS: String,
-  useTwitterServerSet: Boolean,
   sessionTimeout: Duration,
   credentials: Option[(String, String)],
   acl: ZooKeeperACL,
@@ -49,9 +43,9 @@ case class ZooKeeperConfig(
     val clientInit = clientInitializer.map { _ => "<custom>" }.getOrElse("<default>")
     val serverSetInit = serverSetInitializer.map { _ => "<custom>" }.getOrElse("<default>")
 
-    ("host=%s port=%d pathPrefix=%s roleSS=%s envSS=%s nameSS=%s useTwitterServerSet=%s sessionTimeout=%s credentials=%s acl=%s " +
+    ("host=%s port=%d pathPrefix=%s sessionTimeout=%s credentials=%s acl=%s " +
      "clientInitializer=%s serverSetInitializer=%s").format(
-      host, port, pathPrefix, roleSS, envSS, nameSS, useTwitterServerSet, sessionTimeout, creds, acl, clientInit, serverSetInit)
+      host, port, pathPrefix, sessionTimeout, creds, acl, clientInit, serverSetInit)
   }
 }
 
@@ -100,37 +94,12 @@ class ZooKeeperBuilder {
 
   /**
    * Path prefix used to publish Kestrel server availability to the Apache ZooKeeper cluster.
-   * This is used as a prefix for the full path which will be pathPrefix/roleSS/envSS/nameSS.
    * Kestrel will append an additional level of hierarchy for the type of operations accepted
    * (e.g., "/read" or "/write"). Required.
    *
    * Example: "/kestrel/production"
    */
-  var pathPrefix: String = "/"
-
-  /**
-   * The role of the service. Should typically be the LDAP service account name.
-   * e.g. Kestrel
-   */
-  var roleSS: String = "kestrel"
-
-  /**
-   * test/staging/prod etc. The environment in which this service is running.
-   */
-  var envSS: String = "test"
-
-  /**
-   * The name of the service that is running. In kestrel's case, it will be the cluster.
-   */
-  var nameSS: String = "devel"
-
-  /**
-   * If this is set to false, TwitterServerSet will not be used to create the serverset and the configuration
-   * options provided will be used to create the zookeeper client and serverset. If this is set to true,
-   * the default TwitterServerSet configuration will be used to create the zookeeper client and serverset.
-   *
-   */
-  var useTwitterServerSet: Boolean = true
+  var pathPrefix: String = null
 
   /**
    * ZooKeeper session timeout. Defaults to 10 seconds.
@@ -171,8 +140,8 @@ class ZooKeeperBuilder {
   var serverSetInitializer: Option[(ZooKeeperConfig, ZooKeeperClient, String) => ServerSet] = None
 
   def apply() = {
-    ZooKeeperConfig(host, port, pathPrefix, roleSS, envSS, nameSS, useTwitterServerSet, sessionTimeout,
-                    credentials, acl, clientInitializer, serverSetInitializer)
+    ZooKeeperConfig(host, port, pathPrefix, sessionTimeout, credentials, acl, clientInitializer,
+                    serverSetInitializer)
   }
 }
 
@@ -269,15 +238,15 @@ trait KestrelConfig extends ServerConfig[Kestrel] {
   var statusChangeGracePeriod = 0.seconds
 
   /**
-   * When true, enables tracing of session lifetime in the kestrel log
-   */
-  var enableSessionTrace: Boolean = false
-
-  /**
    * Optional Apache Zookeeper configuration used to publish serverset-based availability of Kestrel
    * instances. By default no such information is published.
    */
   var zookeeper: Option[ZooKeeperBuilder] = None
+
+   /**
+   * When true, enables tracing of session lifetime in the kestrel log
+   */
+  var enableSessionTrace: Boolean = false
 
   def apply(runtime: RuntimeEnvironment) = {
     new Kestrel(

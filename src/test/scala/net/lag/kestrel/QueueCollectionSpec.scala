@@ -373,11 +373,12 @@ class QueueCollectionSpec extends SpecificationWithJUnit with TempFolder with Te
 
       "log queue name/alias duplicates" in {
         withTempFolder {
-          traceLogger(Level.WARNING)
+          traceLogger(Level.INFO)
 
           val queueConfigs = List("q1", "q2", "q3") map { q =>
             new QueueBuilder {
               name = q
+              enableTrace = true
             }
           }
           val aliasConfigs = List("a1", "q1", "q2") map { a =>
@@ -401,7 +402,7 @@ class QueueCollectionSpec extends SpecificationWithJUnit with TempFolder with Te
             "confirmRemove" -> { (qc: QueueCollection, name: String) => qc.confirmRemove(name, 100) },
             "flush" ->         { (qc: QueueCollection, name: String) => qc.flush(name) },
             "delete" ->        { (qc: QueueCollection, name: String) => qc.delete(name) },
-            "flushExpired" ->  { (qc: QueueCollection, name: String) => qc.flushExpired(name, true) },
+            "flushExpired" ->  { (qc: QueueCollection, name: String) => qc.flushExpired(name) },
             "stats" ->         { (qc: QueueCollection, name: String) => qc.stats(name) })
       tests foreach { case (op, test) =>
         "%s should not cause a queue to be created".format(op) in {

@@ -8,7 +8,7 @@ name := "kestrel"
 
 organization := "net.lag"
 
-version := "2.4.2-SNAPSHOT"
+version := "2.4.4-SWIFTYPE01"
 
 scalaVersion := "2.9.2"
 
@@ -35,7 +35,8 @@ libraryDependencies ++= Seq(
   "asm" % "asm" % "1.5.3" % "test",
   "org.objenesis" % "objenesis" % "1.1" % "test",
   "org.hamcrest" % "hamcrest-all" % "1.1" % "test",
-  "junit" % "junit" % "4.12" % "test"
+  "junit" % "junit" % "4.12" % "test",
+  "org.apache.thrift" % "libthrift" % "0.9.2"
 )
 
 logBuffered in Test := false
