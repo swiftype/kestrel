@@ -253,7 +253,6 @@ abstract class KestrelHandler(
       queues.add(key, data, expiry, Time.now, Some(sessionDescription))
     }
     Stats.addMetric("set_latency_usec", nsec.inMicroseconds.toInt)
-    Stats.addMetric("q/" + key + "/set_latency_usec", nsec.inMicroseconds.toInt)
     rv
   }
 
