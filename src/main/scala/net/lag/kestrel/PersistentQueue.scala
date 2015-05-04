@@ -134,7 +134,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
 
   // We use java LinkedHashMap rather than the scala impl because of VM-406.
   // A bug in LinkedHashMap causes linked entries to pile up in old gen under load.
-  // The bug has been fixed in the twitter jdk but not yet in scala. 
+  // The bug has been fixed in the twitter jdk but not yet in scala.
   private val transactionExpiryList = new java.util.LinkedHashMap[Int, Time]
 
   private def openTransactionIds = openTransactions.keys.toSeq.sorted.reverse
@@ -205,7 +205,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
   }
 
   // see KestrelHandler
-  metric(statNamed("set_latency_usec")) 
+  metric(statNamed("set_latency_usec"))
   metric(statNamed("get_timeout_msec"))
   metric(statNamed("delivery_latency_msec"))
   metric(statNamed("get_hit_latency_usec"))
@@ -213,7 +213,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
 
   // readbehind
   val fillReadBehindMetric = metric(statNamed("fill_readbehind_usec"))
-  
+
   // internal datastructure metrics
   val txMapSizeMetric = metric(statNamed("tx_map_size"))
   val txExpireListSizeMetric = metric(statNamed("tx_expire_list_size"))
@@ -221,7 +221,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
 
   // request size
   val requestSizeMetric = metric(statNamed("request_size"))
-  
+
   private final def adjustExpiry(startingTime: Time, expiry: Option[Time]): Option[Time] = {
     if (config.maxAge.isDefined) {
       val maxExpiry = startingTime + config.maxAge.get
@@ -367,7 +367,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
     addDurable(value, expiry, xid, addTime) match {
       case Some(f) => true
       case None => false
-    } 
+    }
   }
 
   def add(value: Array[Byte]): Boolean = add(value, None, None, Time.now)
@@ -377,9 +377,9 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
   def continue(xid: Int, value: Array[Byte], expiry: Option[Time]): Boolean = add(value, expiry, Some(xid), Time.now)
 
   /**
-   * Add a value to the end of the queue, transactionally. If the result is defined, the item has been added to 
-   * the in memory queue and the future will be completed when the write is persisted. If the result is not defined 
-   * enqueue to in memory queue failed and journal write was not attempted. 
+   * Add a value to the end of the queue, transactionally. If the result is defined, the item has been added to
+   * the in memory queue and the future will be completed when the write is persisted. If the result is not defined
+   * enqueue to in memory queue failed and journal write was not attempted.
    */
   def addDurable(value: Array[Byte], expiry: Option[Time], xid: Option[Int], addTime: Time): Option[Future[Unit]] = {
     requestSizeMetric.add(value.size)
@@ -449,10 +449,10 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
 
   /**
    * Allows us to get more detail about the state of internal datastructures efficiently.
-   * We don't care what percentiles or counts mean here, we just want to keep track of how 
+   * We don't care what percentiles or counts mean here, we just want to keep track of how
    * these data structures look most of the time.
    */
-  private[this] def addInternalsMetrics() {  
+  private[this] def addInternalsMetrics() {
     txMapSizeMetric.add(openTransactions.size)
     txExpireListSizeMetric.add(transactionExpiryList.size)
     queueSizeMetric.add(queue.size)
