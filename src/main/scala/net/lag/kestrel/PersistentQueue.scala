@@ -174,11 +174,6 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
   def metric(metricName: String) {
     Stats.getMetric(metricName).clear()
   }
-  metric(statNamed("set_latency_usec")) // see KestrelHandler
-  metric(statNamed("get_timeout_msec"))
-  metric(statNamed("delivery_latency_msec"))
-  metric(statNamed("get_hit_latency_usec"))
-  metric(statNamed("get_miss_latency_usec"))
 
   private final def adjustExpiry(startingTime: Time, expiry: Option[Time]): Option[Time] = {
     if (config.maxAge.isDefined) {
