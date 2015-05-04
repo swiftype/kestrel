@@ -1,3 +1,8 @@
+2.4.4-SWIFTYPE02 (version before rebase on top of 2.4.7)
+-----
+- Remove queue-specific metrics (with histograms) because they tend to
+consume too much of RAM on brokers with many queues.
+
 2.4.7
 -----
 - Make storage pluggable

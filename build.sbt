@@ -8,7 +8,7 @@ name := "kestrel"
 
 organization := "net.lag"
 
-version := "2.4.4-SWIFTYPE01"
+version := "2.4.4-SWIFTYPE02"
 
 scalaVersion := "2.9.2"
 
