@@ -530,7 +530,6 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
     removedItem.foreach { qItem =>
       val usec = (Time.now - qItem.addTime).inMilliseconds.toInt max 0
       Stats.addMetric("delivery_latency_msec", usec)
-      Stats.addMetric("q/" + name + "/delivery_latency_msec", usec)
     }
     removedItem
   }
@@ -561,7 +560,6 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
         def onTimeout() {
           val msec = (Time.now - startTime).inMilliseconds.toInt
           Stats.addMetric("get_timeout_msec", msec)
-          Stats.addMetric("q/" + name + "/get_timeout_msec", msec)
           promise.setValue(None)
         }
         val w = waiters.add(deadline.get, onTrigger, onTimeout)
@@ -584,7 +582,6 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
       val statName = if (promise().isDefined) "get_hit_latency_usec" else "get_miss_latency_usec"
       val usec = (Time.now - startTime).inMicroseconds.toInt max 0
       Stats.addMetric(statName, usec)
-      Stats.addMetric("q/" + name + "/" + statName, usec)
     }
     promise map { itemOption =>
       if (itemOption.isDefined) getItemsHit.getAndIncrement() else getItemsMiss.getAndIncrement()

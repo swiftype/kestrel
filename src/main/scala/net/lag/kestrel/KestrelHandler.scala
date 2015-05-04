@@ -300,12 +300,7 @@ abstract class KestrelHandler(
     val sw = Stopwatch.start()
     val rv = queues.add(key, data, expiry, Time.now, Some(sessionDescription))
 
-    // Retrieve a value so that we can add the same value in the global as well as the
-    // queue specific stats
-    val setLatency = sw()
-
-    Stats.addMetric("set_latency_usec", setLatency.inMicroseconds.toInt)
-    Stats.addMetric("q/" + key + "/set_latency_usec", setLatency.inMicroseconds.toInt)
+    Stats.addMetric("set_latency_usec", sw().inMicroseconds.toInt)
     rv
   }
 
