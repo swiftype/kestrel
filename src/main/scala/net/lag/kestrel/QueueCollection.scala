@@ -28,7 +28,7 @@ import com.twitter.util._
 import config._
 import net.lag.kestrel.config.QueueConfig
 
-class InaccessibleQueuePath extends Exception("Inaccessible queue path: Must be a directory and writable")
+class InaccessibleQueuePath(path: File) extends Exception("Inaccessible queue path: Must be a directory and writable: " + path)
 
 object QueueCollection {
   val unknown = () => "<unknown>"

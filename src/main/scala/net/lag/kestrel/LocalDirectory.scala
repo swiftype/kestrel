@@ -30,8 +30,8 @@ import java.util.concurrent.ScheduledExecutorService
  */
 
 class LocalFSContainerFactory (
-  queuePath: String, 
-  statusFile: String, 
+  queuePath: String,
+  statusFile: String,
   journalSyncScheduler: ScheduledExecutorService
 ) extends StreamContainerFactory {
 
@@ -40,7 +40,7 @@ class LocalFSContainerFactory (
     path.mkdirs()
   }
   if (!path.isDirectory || !path.canWrite) {
-    throw new InaccessibleQueuePath
+    throw new InaccessibleQueuePath(path)
   }
 
   def createStreamContainer(): PersistentStreamContainer = {
