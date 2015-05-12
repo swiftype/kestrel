@@ -42,9 +42,9 @@ class QueueCollection(var storageContainer:PersistentStreamContainer, timer: Tim
   type SessionDescription = Option[() => String]
 
   private val log = Logger.get(getClass.getName)
-  private val queues : collection.mutable.Map[String, PersistentQueue] = new ConcurrentHashMap[String, PersistentQueue]
   private val fanout_queues = new mutable.HashMap[String, mutable.HashSet[String]]
-  private val aliases = new mutable.HashMap[String, AliasedQueue]
+  private val aliases : collection.mutable.Map[String, AliasedQueue] = new ConcurrentHashMap[String, AliasedQueue]
+  private val queues : collection.mutable.Map[String, PersistentQueue] = new ConcurrentHashMap[String, PersistentQueue]
   @volatile private var shuttingDown = false
 
   @volatile private var queueBuilderMap = Map(queueBuilders.map { builder => (builder.name, builder) }: _*)
@@ -194,15 +194,14 @@ class QueueCollection(var storageContainer:PersistentStreamContainer, timer: Tim
   def apply(name: String): Option[PersistentQueue] = queue(name)
 
   /**
-   * Get an alias, creating it if necessary.
+   * Get an alias
    */
-  def alias(name: String): Option[AliasedQueue] = synchronized {
+  def alias(name: String): Option[AliasedQueue] =
     if (shuttingDown) {
       None
     } else {
       aliases.get(name)
     }
-  }
 
   /**
    * Add an item to a named queue. Will not return until the item has been synchronously added
