@@ -27,7 +27,7 @@ import com.twitter.ostrich.stats.Stats
 import com.twitter.util.{Duration, Future, Time, Timer}
 import config._
 
-class InaccessibleQueuePath extends Exception("Inaccessible queue path: Must be a directory and writable")
+class InaccessibleQueuePath(path: File) extends Exception("Inaccessible queue path: Must be a directory and writable: " + path)
 
 object QueueCollection {
   val unknown = () => "<unknown>"
@@ -48,7 +48,7 @@ class QueueCollection(queueFolder: String, timer: Timer, journalSyncScheduler: S
     path.mkdirs()
   }
   if (! path.isDirectory || ! path.canWrite) {
-    throw new InaccessibleQueuePath
+    throw new InaccessibleQueuePath(path)
   }
 
   private val fanout_queues = new mutable.HashMap[String, mutable.HashSet[String]]
