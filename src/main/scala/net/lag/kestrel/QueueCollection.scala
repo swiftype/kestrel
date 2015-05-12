@@ -172,7 +172,7 @@ class QueueCollection(queueFolder: String, timer: Timer, journalSyncScheduler: S
       queues.get(name)
     }
 
-  def getOrCreateQueue(name: String, sessionDescription: SessionDescription): Option[PersistentQueue] =
+  private def getOrCreateQueue(name: String, sessionDescription: SessionDescription): Option[PersistentQueue] =
     synchronized {
       queues.get(name) orElse {
         // only happens when creating a queue for the first time.
