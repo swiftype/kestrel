@@ -72,6 +72,35 @@ class QueueCollectionSpec extends SpecificationWithJUnit with TempFolder with Te
       }
     }
 
+    "multi threaded queue create" in {
+      withTempFolder {
+        Stats.clearAll()
+        qc = new QueueCollection(folderName, timer, scheduler, config, Nil, Nil)
+        qc.queueNames mustEqual Nil
+        Stats.getCounter("queue_creates")() mustEqual 0
+        Stats.getCounter("queue_deletes")() mustEqual 0
+
+        val threads = (1 to 10).map({ threadId =>
+          val t = new Thread {
+             override def run {
+              (1 to 1000).foreach({ i =>
+                qc.add("work" + i, ("stuff " + threadId).getBytes)
+              })
+            }
+          }
+          t.start
+          t
+        })
+
+        threads.foreach({ t => t.join })
+
+        qc.queueNames.length mustEqual 1000
+        Stats.getCounter("total_items")() mustEqual 10000
+        Stats.getCounter("queue_creates")() mustEqual 1000
+        Stats.getCounter("queue_deletes")() mustEqual 0
+      }
+    }
+
     "refuse to create a bad queue" in {
       withTempFolder {
         qc = new QueueCollection(folderName, timer, scheduler, config, Nil, Nil)
