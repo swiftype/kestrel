@@ -18,15 +18,16 @@
 package net.lag.kestrel
 
 import java.io.File
-import java.util.concurrent.{CountDownLatch, ScheduledExecutorService}
+import java.util.concurrent.ScheduledExecutorService
 import scala.collection.mutable
+import collection.JavaConversions._
 import com.twitter.conversions.time._
 import com.twitter.logging.Logger
 import com.twitter.ostrich.stats.Stats
 import com.twitter.util.{Duration, Future, Time, Timer}
 import config._
 
-class InaccessibleQueuePath extends Exception("Inaccessible queue path: Must be a directory and writable")
+class InaccessibleQueuePath(path: File) extends Exception("Inaccessible queue path: Must be a directory and writable: " + path)
 
 object QueueCollection {
   val unknown = () => "<unknown>"
@@ -47,12 +48,12 @@ class QueueCollection(queueFolder: String, timer: Timer, journalSyncScheduler: S
     path.mkdirs()
   }
   if (! path.isDirectory || ! path.canWrite) {
-    throw new InaccessibleQueuePath
+    throw new InaccessibleQueuePath(path)
   }
 
-  private val queues = new mutable.HashMap[String, PersistentQueue]
   private val fanout_queues = new mutable.HashMap[String, mutable.HashSet[String]]
-  private val aliases = new mutable.HashMap[String, AliasedQueue]
+  private val aliases : collection.mutable.Map[String, AliasedQueue] = new ConcurrentHashMap[String, AliasedQueue]
+  private val queues : collection.mutable.Map[String, PersistentQueue] = new ConcurrentHashMap[String, PersistentQueue]
   @volatile private var shuttingDown = false
 
   @volatile private var queueBuilderMap = Map(queueBuilders.map { builder => (builder.name, builder) }: _*)
@@ -161,42 +162,49 @@ class QueueCollection(queueFolder: String, timer: Timer, journalSyncScheduler: S
    * Get a named queue, with control over whether non-existent queues are created.
    */
   def queue(name: String, create: Boolean, sessionDescription: SessionDescription): Option[PersistentQueue] =
+    if (shuttingDown) {
+      None
+    } else if (create) {
+      queues.get(name) orElse {
+        getOrCreateQueue(name, sessionDescription)
+      }
+    } else {
+      queues.get(name)
+    }
+
+  private def getOrCreateQueue(name: String, sessionDescription: SessionDescription): Option[PersistentQueue] =
     synchronized {
       if (shuttingDown) {
-        None
-      } else if (create) {
-        queues.get(name) orElse {
-          // only happens when creating a queue for the first time.
-          val q = if (name contains '+') {
-            val master = name.split('+')(0)
-            val fanoutQ = buildQueue(name, Some(master), path.getPath, sessionDescription)
-            fanout_queues.getOrElseUpdate(master, new mutable.HashSet[String]) += name
-            log.info("Fanout queue %s added to %s by %s", name, master, sessionDescription.getOrElse(unknown)())
-            fanoutQ
-          } else {
-            buildQueue(name, None, path.getPath, sessionDescription)
-          }
-          q.setup
-          queues(name) = q
-          Some(q)
+        return None
+      }
+      queues.get(name) orElse {
+        // only happens when creating a queue for the first time.
+        val q = if (name contains '+') {
+          val master = name.split('+')(0)
+          val fanoutQ = buildQueue(name, Some(master), path.getPath, sessionDescription)
+          fanout_queues.getOrElseUpdate(master, new mutable.HashSet[String]) += name
+          log.info("Fanout queue %s added to %s by %s", name, master, sessionDescription.getOrElse(unknown)())
+          fanoutQ
+        } else {
+          buildQueue(name, None, path.getPath, sessionDescription)
         }
-      } else {
-        queues.get(name)
+        q.setup
+        queues(name) = q
+        Some(q)
       }
     }
 
   def apply(name: String) = queue(name)
 
   /**
-   * Get an alias, creating it if necessary.
+   * Get an alias
    */
-  def alias(name: String): Option[AliasedQueue] = synchronized {
+  def alias(name: String): Option[AliasedQueue] =
     if (shuttingDown) {
       None
     } else {
       aliases.get(name)
     }
-  }
 
   /**
    * Add an item to a named queue. Will not return until the item has been synchronously added
