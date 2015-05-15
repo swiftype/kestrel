@@ -174,6 +174,9 @@ class QueueCollection(queueFolder: String, timer: Timer, journalSyncScheduler: S
 
   private def getOrCreateQueue(name: String, sessionDescription: SessionDescription): Option[PersistentQueue] =
     synchronized {
+      if (shuttingDown) {
+        return None
+      }
       queues.get(name) orElse {
         // only happens when creating a queue for the first time.
         val q = if (name contains '+') {
