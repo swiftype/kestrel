@@ -16,6 +16,8 @@ def sbt_binary
 end
 
 #-------------------------------------------------------------------------------
+task :default => :package_dist
+
 desc "Build package"
 task :package_dist do
   sh "#{sbt_binary} package-dist"
