@@ -1,0 +1,15 @@
+GEM
+  remote: http://rubygems.org/
+  specs:
+    rake (10.4.2)
+    thrift (0.8.0)
+    thrift_client (0.8.1)
+      thrift (~> 0.8.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  rake
+  thrift (= 0.8.0)
+  thrift_client (= 0.8.1)
