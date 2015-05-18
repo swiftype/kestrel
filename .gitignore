@@ -21,3 +21,7 @@ kcluster-*.gem
 .ensime
 .ensime/
 .ensime_lucene/
+
+# Rubygems stuff
+/vendor/bundle
+/.bundle
