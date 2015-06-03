@@ -77,7 +77,21 @@ class SwiftypeTimeSeriesCollector(collection: StatsCollection) extends Service {
         hourlyTimings.getOrElseUpdate("metric:" + k, new TimeSeries[List[Long]](60, EMPTY_TIMINGS)).add(data)
       }
 
+      pruneHourly(stats)
+
       lastCollection = Time.now
+    }
+
+    def pruneHourly(stats: StatsSummary) {
+      hourly.retain { case (k, v) =>
+        if (k.startsWith("gauge:")) {
+          stats.gauges.contains(k.stripPrefix("gauge:"))
+        } else if (k.startsWith("counter:")) {
+          stats.counters.contains(k.stripPrefix("counter:"))
+        } else {
+          true
+        }
+      }
     }
   }
 
