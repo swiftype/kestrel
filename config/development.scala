@@ -3,6 +3,7 @@ import com.twitter.conversions.time._
 import com.twitter.logging.config._
 import com.twitter.ostrich.admin.config._
 import net.lag.kestrel.config._
+import net.lag.kestrel.admin.config._
 
 new KestrelConfig {
   listenAddress = "0.0.0.0"
@@ -26,7 +27,7 @@ new KestrelConfig {
   admin.httpPort = 2223
 
   admin.statsNodes = new StatsConfig {
-    reporters = new TimeSeriesCollectorConfig
+    reporters = new SwiftypeTimeSeriesCollectorConfig
   }
 
   queues = new QueueBuilder {
