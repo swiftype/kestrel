@@ -171,10 +171,6 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
   gauge("open_transactions", openTransactionCount)
   gauge("create_time", createTime)
 
-  def metric(metricName: String) {
-    Stats.getMetric(metricName).clear()
-  }
-
   private final def adjustExpiry(startingTime: Time, expiry: Option[Time]): Option[Time] = {
     if (config.maxAge.isDefined) {
       val maxExpiry = startingTime + config.maxAge.get
@@ -563,11 +559,6 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
     Stats.clearGauge(statNamed("waiters"))
     Stats.clearGauge(statNamed("open_transactions"))
     Stats.clearGauge(statNamed("create_time"))
-    Stats.removeMetric(statNamed("set_latency_usec")) // see KestrelHandler
-    Stats.removeMetric(statNamed("get_timeout_msec"))
-    Stats.removeMetric(statNamed("delivery_latency_msec"))
-    Stats.removeMetric(statNamed("get_hit_latency_usec"))
-    Stats.removeMetric(statNamed("get_miss_latency_usec"))
   }
 
   private final def nextXid(): Int = {
