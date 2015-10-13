@@ -158,6 +158,8 @@ class SwiftypeTimeSeriesCollectorSpec extends SpecificationWithJUnit {
         data("counter:whales.tps")(58) mustEqual List(1.minute.ago.inSeconds, 0)
         data("counter:whales.tps")(59) mustEqual List(Time.now.inSeconds, 10)
 
+        collector.collector.listener.lastCounterMap.keys must contain("whales.tps")
+
         time.advance(1.minute)
         Stats.removeCounter("whales.tps")
 
@@ -171,6 +173,8 @@ class SwiftypeTimeSeriesCollectorSpec extends SpecificationWithJUnit {
             e.getMessage mustEqual "key not found: counter:whales.tps"
           }
         }
+
+        collector.collector.listener.lastCounterMap.keys must not contain("whales.tps")
       }
     }
   }
