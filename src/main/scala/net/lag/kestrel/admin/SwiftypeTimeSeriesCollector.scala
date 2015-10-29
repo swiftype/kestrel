@@ -59,7 +59,7 @@ class SwiftypeTimeSeriesCollector(collection: StatsCollection) extends Service {
   var lastCollection: Time = Time.epoch
 
   val collector = new PeriodicBackgroundProcess("TimeSeriesCollector", 1.minute) {
-    val listener = new StatsListener(collection)
+    val listener = new SwiftypeStatsListener(collection)
 
     def periodic() {
       val stats = listener.get()
