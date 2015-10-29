@@ -1,5 +1,8 @@
-2.4.4-SWIFTYPE03 (version before rebase on top of 2.4.7)
+2.4.4-SWIFTYPE05 (version before rebase on top of 2.4.7)
 -----
+- PR #3: Patch another memory leak
+
+2.4.4-SWIFTYPE03 (version before rebase on top of 2.4.7)
 - PR #1: Reading a queue that already exists does not need a mutex.
 
 2.4.4-SWIFTYPE02 (version before rebase on top of 2.4.7)
