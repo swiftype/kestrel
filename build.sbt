@@ -14,11 +14,13 @@ scalaVersion := "2.9.2"
 
 resolvers ++= Seq(
   "twitter" at "http://maven.twttr.com/",
-  "sonatype" at "https://oss.sonatype.org/content/repositories/scala-tools"
+  "sonatype" at "https://oss.sonatype.org/content/repositories/scala-tools",
+  "vendored" at ("file://" + file("").absolutePath + "/vendor")
 )
 
+
 libraryDependencies ++= Seq(
-  "com.twitter" % "ostrich" % "8.2.9",
+  "com.twitter" % "ostrich" % "8.2.9-SWIFTYPE01" force(),
   "com.twitter" %% "naggati" % "4.1.0",
   "com.twitter" % "finagle-core" % "5.3.19",
   "com.twitter" % "finagle-ostrich4" % "5.3.19",
