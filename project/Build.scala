@@ -1,6 +1,7 @@
 import sbt._
 import Keys._
-import com.twitter.sbt._
+import com.twitter.sbt.{StandardProject,PackageDist}
+import com.twitter.scrooge.ScroogeSBT
 
 object Kestrel extends Build {
   val finagleVersion = "6.4.1"
@@ -10,7 +11,8 @@ object Kestrel extends Build {
     base = file("."),
     settings = Project.defaultSettings ++
       StandardProject.newSettings ++
-      CompileThriftScrooge.newSettings
+      ScroogeSBT.newSettings ++
+      net.virtualvoid.sbt.graph.Plugin.graphSettings
   ).settings(
     name := "kestrel",
     organization := "net.lag",
@@ -21,15 +23,17 @@ object Kestrel extends Build {
     logBuffered in Test := false,
     parallelExecution in Test := false,
 
-    resolvers += "twitter.com" at "https://maven.twttr.com/",
-
     libraryDependencies ++= Seq(
       "com.twitter" % "ostrich" % "8.2.9",
       "com.twitter" %% "naggati" % "4.1.0",
       "com.twitter" % "finagle-core" % finagleVersion,
       "com.twitter" % "finagle-ostrich4" % finagleVersion,
+      "org.apache.thrift" % "libthrift" % "0.9.2",
       "com.twitter" % "finagle-thrift" % finagleVersion, // override scrooge's version
-      "com.twitter" %% "scrooge-runtime" % "3.0.1",
+      "com.twitter" %% "scrooge-runtime" % "3.1.5"
+        exclude("com.twitter", "finagle-core_2.9.2")
+        exclude("com.twitter", "finagle-thrift_2.9.2")
+        exclude("com.twitter", "util-core_2.9.2"),
       "com.twitter.common.zookeeper" % "server-set" % "1.0.16",
       // for tests only:
       "junit" % "junit" % "4.10" % "test",
@@ -45,7 +49,6 @@ object Kestrel extends Build {
 
     mainClass in Compile := Some("net.lag.kestrel.Kestrel"),
 
-    CompileThriftScrooge.scroogeVersion := "3.0.1",
     PackageDist.packageDistConfigFilesValidationRegex := Some(".*"),
     publishArtifact in Test := true
   )
