@@ -1,7 +1,7 @@
 Kestrel
 =======
 
-[![Project status](https://img.shields.io/badge/status-deprecated-orange.svg)](#status)
+[![Project status](https://img.shields.io/badge/status-active-green.svg)](#status)
 
 Kestrel is based on Blaine Cook's "starling" simple, distributed message
 queue, with added features and bulletproofing, as well as the scalability
@@ -25,8 +25,15 @@ Kestrel has a mailing list here:
 
 Author's address: Robey Pointer \<robeypointer@gmail.com>
 
+
 Status
 ------
+
+We ([Papertrail](https://papertrailapp.com/)) use Kestrel extensively and are taking on maintaining a fork to fold in bug fixes and small improvements that we find while operating it.
+
+
+Twitter's Status Statement
+--------------------------
 
 We've deprecated Kestrel because internally we've shifted our attention to an alternative project based on DistributedLog, and we no longer have the resources to contribute fixes or accept pull requests. While Kestrel is a great solution up to a certain point (simple, fast, durable, and easy to deploy), it hasn't been able to cope with Twitter's massive scale (in terms of number of tenants, QPS, operability, diversity of workloads etc.) or operating environment (an Aurora cluster without persistent storage).
 
