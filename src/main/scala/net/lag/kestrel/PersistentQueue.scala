@@ -47,7 +47,7 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
   private var _currentAge: Time = Time.epoch
 
   // time the queue was created
-  private var _createTime = Time.now
+  private val _createTime = Time.now
 
   // time the most recent modification occurred
   private var _lastModificationTime = Time.now
@@ -102,14 +102,14 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
   // # of items in the queue (including those not in memory)
   private var queueLength: Long = 0
 
-  private var queue = new mutable.Queue[QItem]
+  private val queue = new mutable.Queue[QItem]
 
   private var _memoryBytes: Long = 0
 
   private var closed = false
   private var paused = false
 
-  private var journal =
+  private val journal =
     new Journal(new File(persistencePath).getCanonicalFile, name, journalSyncScheduler, config.syncJournal)
 
   private val waiters = new DeadlineWaitQueue(timer)
