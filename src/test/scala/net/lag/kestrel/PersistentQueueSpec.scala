@@ -1232,6 +1232,40 @@ class PersistentQueueSpec extends SpecificationWithJUnit
         }
       }
     }
+
+    "active queue does not expire if there are open transactions" in {
+      withTempFolder {
+        Time.withCurrentTimeFrozen { time =>
+          val config = new QueueBuilder {
+            keepJournal = false
+            maxQueueAge = 90.seconds
+          }.apply()
+          val q = new PersistentQueue("wu_tang", folderName, config, timer, scheduler)
+          q.setup()
+
+          q.isReadyForExpiration mustEqual false
+
+          q.add("method man".getBytes, None) mustEqual true
+          val item = q.remove(true)
+
+          q.length mustEqual 0
+          q.openTransactionCount mustEqual 1
+
+          q.isReadyForExpiration mustEqual false
+
+          time.advance(91.seconds)
+
+          q.isReadyForExpiration mustEqual false
+
+          q.confirmRemove(item.get.xid)
+
+          // confirmRemove() resets the last modification timestamp
+          time.advance(91.seconds)
+
+          q.isReadyForExpiration mustEqual true
+        }
+      }
+    }
   }
 
   "PersistentQueue with item expiry" should {

@@ -241,7 +241,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
    * and the last queue modification occurring longer than maxQueueAge ago.
    */
    def isReadyForExpiration: Boolean = synchronized {
-    config.maxQueueAge.isDefined && queue.isEmpty && (Time.now > _lastModificationTime + config.maxQueueAge.get)
+    config.maxQueueAge.isDefined && queue.isEmpty && openTransactions.isEmpty && (Time.now > _lastModificationTime + config.maxQueueAge.get)
   }
 
   private def disallowRewritesForDelay() {
