@@ -60,6 +60,9 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
   // time the queue was created
   private var _createTime = Time.now
 
+  // time the most recent modification occurred
+  private var _lastModificationTime = Time.now
+
   def statNamed(statName: String) = "q/" + name + "/" + statName
 
   // # of items EVER added to the queue:
@@ -153,6 +156,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
   def waiterCount: Long = synchronized { waiters.size }
   def isClosed: Boolean = synchronized { closed || paused }
   def createTime: Long = synchronized { _createTime.inSeconds }
+  def lastModificationTime: Long = synchronized { _lastModificationTime.inSeconds }
 
   // mostly for unit tests.
   def memoryLength: Long = synchronized { queue.size }
@@ -197,6 +201,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
   gauge("waiters", waiterCount)
   gauge("open_transactions", openTransactionCount)
   gauge("create_time", createTime)
+  gauge("last_modification_time", lastModificationTime)
 
   def metric(metricName: String): Metric = {
     val metric = Stats.getMetric(metricName)
@@ -233,15 +238,10 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
 
   /**
    * Check if this Queue is eligible for expiration by way of it being empty
-   * and its age being greater than or equal to maxQueueAge
+   * and the last queue modification occurring longer than maxQueueAge ago.
    */
-  def isReadyForExpiration: Boolean = {
-    // Don't even bother if the maxQueueAge is None
-    if (config.maxQueueAge.isDefined && queue.isEmpty && Time.now > _createTime + config.maxQueueAge.get) {
-      true
-    } else {
-      false
-    }
+   def isReadyForExpiration: Boolean = synchronized {
+    config.maxQueueAge.isDefined && queue.isEmpty && (Time.now > _lastModificationTime + config.maxQueueAge.get)
   }
 
   private def disallowRewritesForDelay() {
@@ -406,6 +406,8 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
       }
     }
     val futureWrite = synchronized {
+      _lastModificationTime = Time.now
+
       if (closed || value.size > config.maxItemSize.inBytes) return None
       if (config.fanoutOnly && !isFanout) return Some(Future.Done)
       while (queueLength >= config.maxItems || queueSize >= config.maxSize.inBytes) {
@@ -497,6 +499,8 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
     }
 
     val removedItem = synchronized {
+      _lastModificationTime = Time.now
+
       if (closed || paused || queueLength == 0) {
         None
       } else {
@@ -610,6 +614,8 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
    */
   def unremove(xid: Int) {
     synchronized {
+      _lastModificationTime = Time.now
+
       if (!closed) {
         _unremove(xid) match {
           case Some(_) => {
@@ -630,6 +636,8 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
 
   def confirmRemove(xid: Int) {
     synchronized {
+      _lastModificationTime = Time.now
+
       if (!closed) {
         openTransactions.remove(xid) match {
           case Some(_) => {
@@ -725,6 +733,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
     Stats.clearGauge(statNamed("waiters"))
     Stats.clearGauge(statNamed("open_transactions"))
     Stats.clearGauge(statNamed("create_time"))
+    Stats.clearGauge(statNamed("last_modification_time"))
     Stats.removeMetric(statNamed("journal_rewrite_usec"))
     Stats.removeMetric(statNamed("journal_rotation_usec"))
     Stats.removeMetric(statNamed("set_latency_usec")) // see KestrelHandler
