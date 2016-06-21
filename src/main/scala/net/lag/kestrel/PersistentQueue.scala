@@ -58,7 +58,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
   private var _currentAge: Time = Time.epoch
 
   // time the queue was created
-  private var _createTime = Time.now
+  private val _createTime = Time.now
 
   // time the most recent modification occurred
   private var _lastModificationTime = Time.now
@@ -119,14 +119,14 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
 
   // We use java LinkedList here for the same reason we use java LinkedHashMap
   // below: the scala datastructure (Queue) is susceptible to gc nepotism.
-  private var queue: java.util.Deque[QItem] = new java.util.LinkedList[QItem]
+  private val queue: java.util.Deque[QItem] = new java.util.LinkedList[QItem]
 
   private var _memoryBytes: Long = 0
 
   private var closed = false
   private var paused = false
 
-  private var journal =
+  private val journal =
     new Journal(persistencePath, name, config.syncJournal)
 
   private val waiters = new DeadlineWaitQueue(timer)
