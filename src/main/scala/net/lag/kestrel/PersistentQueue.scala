@@ -47,10 +47,15 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
   private var _currentAge: Time = Time.epoch
 
   // time the queue was created
-  private val _createTime = Time.now
+  private val _createTime: Time = Time.now
 
-  // time the most recent modification occurred
-  private var _lastModificationTime = Time.now
+  /**
+   * time the most recent client-initiated access to the queue occurred.
+   *
+   * Used to determine when a queue has become unused and can be expired. This allows us to have queues that are usually
+   * empty but that never expire as long as clients keep polling them.
+   */
+  private var _lastAccessTime: Time = Time.now
 
   def statNamed(statName: String) = "q/" + name + "/" + statName
 
@@ -131,7 +136,7 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
   def waiterCount: Long = synchronized { waiters.size }
   def isClosed: Boolean = synchronized { closed || paused }
   def createTime: Long = synchronized { _createTime.inSeconds }
-  def lastModificationTime: Long = synchronized { _lastModificationTime.inSeconds }
+  def lastAccessTime: Long = synchronized { _lastAccessTime.inSeconds }
 
   // mostly for unit tests.
   def memoryLength: Long = synchronized { queue.size }
@@ -174,7 +179,7 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
   gauge("waiters", waiterCount)
   gauge("open_transactions", openTransactionCount)
   gauge("create_time", createTime)
-  gauge("last_modification_time", lastModificationTime)
+  gauge("last_access_time", lastAccessTime)
 
   private final def adjustExpiry(startingTime: Time, expiry: Option[Time]): Option[Time] = {
     if (config.maxAge.isDefined) {
@@ -186,11 +191,12 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
   }
 
   /**
-   * Check if this Queue is eligible for expiration by way of it being empty
-   * and the last queue modification occuring longer than maxQueueAge ago.
+   * Check if this Queue is eligible for expiration by way of it being empty,
+   * having zero open transactions, and the last queue access occuring longer
+   * than maxQueueAge ago.
    */
    def isReadyForExpiration: Boolean = synchronized {
-    config.maxQueueAge.isDefined && queue.isEmpty && openTransactions.isEmpty && (Time.now > _lastModificationTime + config.maxQueueAge.get)
+    config.maxQueueAge.isDefined && queue.isEmpty && openTransactions.isEmpty && (Time.now > _lastAccessTime + config.maxQueueAge.get)
   }
 
   private def disallowRewritesForDelay() {
@@ -302,7 +308,7 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
    */
   def add(value: Array[Byte], expiry: Option[Time], xid: Option[Int], addTime: Time): Boolean = {
     val future = synchronized {
-      _lastModificationTime = Time.now
+      _lastAccessTime = Time.now
 
       if (closed || value.size > config.maxItemSize.inBytes) return false
       if (config.fanoutOnly && !isFanout) return true
@@ -350,6 +356,8 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
    */
   def peek(): Option[QItem] = {
     synchronized {
+      _lastAccessTime = Time.now
+
       if (closed || paused || queueLength == 0) {
         None
       } else {
@@ -367,7 +375,7 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
    */
   def remove(transaction: Boolean): Option[QItem] = {
     val removedItem = synchronized {
-      _lastModificationTime = Time.now
+      _lastAccessTime = Time.now
 
       if (closed || paused || queueLength == 0) {
         None
@@ -465,7 +473,7 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
    */
   def unremove(xid: Int) {
     synchronized {
-      _lastModificationTime = Time.now
+      _lastAccessTime = Time.now
 
       if (!closed) {
         if (config.keepJournal) journal.unremove(xid)
@@ -480,7 +488,7 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
 
   def confirmRemove(xid: Int) {
     synchronized {
-      _lastModificationTime = Time.now
+      _lastAccessTime = Time.now
 
       if (!closed) {
         if (config.keepJournal) journal.confirmRemove(xid)
@@ -567,7 +575,7 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
     Stats.clearGauge(statNamed("waiters"))
     Stats.clearGauge(statNamed("open_transactions"))
     Stats.clearGauge(statNamed("create_time"))
-    Stats.clearGauge(statNamed("last_modification_time"))
+    Stats.clearGauge(statNamed("last_access_time"))
   }
 
   private final def nextXid(): Int = {
