@@ -58,10 +58,15 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
   private var _currentAge: Time = Time.epoch
 
   // time the queue was created
-  private val _createTime = Time.now
+  private val _createTime: Time = Time.now
 
-  // time the most recent modification occurred
-  private var _lastModificationTime = Time.now
+  /**
+   * time the most recent client-initiated access to the queue occurred.
+   *
+   * Used to determine when a queue has become unused and can be expired. This allows us to have queues that are usually
+   * empty but that never expire as long as clients keep polling them.
+   */
+  private var _lastAccessTime: Time = Time.now
 
   def statNamed(statName: String) = "q/" + name + "/" + statName
 
@@ -156,7 +161,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
   def waiterCount: Long = synchronized { waiters.size }
   def isClosed: Boolean = synchronized { closed || paused }
   def createTime: Long = synchronized { _createTime.inSeconds }
-  def lastModificationTime: Long = synchronized { _lastModificationTime.inSeconds }
+  def lastAccessTime: Long = synchronized { _lastAccessTime.inSeconds }
 
   // mostly for unit tests.
   def memoryLength: Long = synchronized { queue.size }
@@ -201,7 +206,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
   gauge("waiters", waiterCount)
   gauge("open_transactions", openTransactionCount)
   gauge("create_time", createTime)
-  gauge("last_modification_time", lastModificationTime)
+  gauge("last_access_time", lastAccessTime)
 
   def metric(metricName: String): Metric = {
     val metric = Stats.getMetric(metricName)
@@ -237,11 +242,12 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
   }
 
   /**
-   * Check if this Queue is eligible for expiration by way of it being empty
-   * and the last queue modification occurring longer than maxQueueAge ago.
+   * Check if this Queue is eligible for expiration by way of it being empty,
+   * having zero open transactions, and the last queue access occurring longer
+   * than maxQueueAge ago.
    */
    def isReadyForExpiration: Boolean = synchronized {
-    config.maxQueueAge.isDefined && queue.isEmpty && openTransactions.isEmpty && (Time.now > _lastModificationTime + config.maxQueueAge.get)
+    config.maxQueueAge.isDefined && queue.isEmpty && openTransactions.isEmpty && (Time.now > _lastAccessTime + config.maxQueueAge.get)
   }
 
   private def disallowRewritesForDelay() {
@@ -406,7 +412,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
       }
     }
     val futureWrite = synchronized {
-      _lastModificationTime = Time.now
+      _lastAccessTime = Time.now
 
       if (closed || value.size > config.maxItemSize.inBytes) return None
       if (config.fanoutOnly && !isFanout) return Some(Future.Done)
@@ -465,6 +471,8 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
    */
   def peek(): Option[QItem] = {
     synchronized {
+      _lastAccessTime = Time.now
+
       if (closed || paused || queueLength == 0) {
         None
       } else {
@@ -499,7 +507,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
     }
 
     val removedItem = synchronized {
-      _lastModificationTime = Time.now
+      _lastAccessTime = Time.now
 
       if (closed || paused || queueLength == 0) {
         None
@@ -614,7 +622,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
    */
   def unremove(xid: Int) {
     synchronized {
-      _lastModificationTime = Time.now
+      _lastAccessTime = Time.now
 
       if (!closed) {
         _unremove(xid) match {
@@ -636,7 +644,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
 
   def confirmRemove(xid: Int) {
     synchronized {
-      _lastModificationTime = Time.now
+      _lastAccessTime = Time.now
 
       if (!closed) {
         openTransactions.remove(xid) match {
@@ -733,6 +741,7 @@ class PersistentQueue(val name: String, persistencePath: PersistentStreamContain
     Stats.clearGauge(statNamed("waiters"))
     Stats.clearGauge(statNamed("open_transactions"))
     Stats.clearGauge(statNamed("create_time"))
+    Stats.clearGauge(statNamed("last_access_time"))
     Stats.clearGauge(statNamed("last_modification_time"))
     Stats.removeMetric(statNamed("journal_rewrite_usec"))
     Stats.removeMetric(statNamed("journal_rotation_usec"))

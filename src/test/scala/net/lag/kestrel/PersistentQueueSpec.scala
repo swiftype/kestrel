@@ -1259,7 +1259,7 @@ class PersistentQueueSpec extends SpecificationWithJUnit
 
           q.confirmRemove(item.get.xid)
 
-          // confirmRemove() resets the last modification timestamp
+          // confirmRemove() resets the last access timestamp
           time.advance(91.seconds)
 
           q.isReadyForExpiration mustEqual true
