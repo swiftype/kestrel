@@ -1,3 +1,7 @@
+2.4.4-SWIFTYPE07
+-----
+- PR #5: Improvements to queue expiration process
+
 2.4.4-SWIFTYPE06
 -----
 - PR #4: Start using a vendored Ostrich jar and fix more memory leaks
