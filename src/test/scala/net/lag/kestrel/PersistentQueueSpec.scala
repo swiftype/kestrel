@@ -1063,7 +1063,7 @@ class PersistentQueueSpec extends SpecificationWithJUnit
     val timer = new FakeTimer()
     val scheduler = new ScheduledThreadPoolExecutor(1)
 
-    "expire queue" in {
+    "expire queue maxQueueAge after last remove" in {
       withTempFolder {
         Time.withCurrentTimeFrozen { time =>
           val config = new QueueBuilder {
@@ -1089,8 +1089,97 @@ class PersistentQueueSpec extends SpecificationWithJUnit
 
           q.remove must beSomeQItem("method man") // queue is now empty
 
-          // This should be true now because the queue is 91 seconds old and
-          // has no items
+          // Still not ready, queue is empty but a remove just occurred
+          q.isReadyForExpiration mustEqual false
+
+          time.advance(91.seconds)
+
+          q.isReadyForExpiration mustEqual true
+        }
+      }
+    }
+
+    "empty/unused queue expires maxQueueAge after create" in {
+      withTempFolder {
+        Time.withCurrentTimeFrozen { time =>
+          val config = new QueueBuilder {
+            keepJournal = false
+            maxQueueAge = 90.seconds
+          }.apply()
+          val q = new PersistentQueue("wu_tang", folderName, config, timer, scheduler)
+          q.setup()
+
+          q.isReadyForExpiration mustEqual false
+
+          time.advance(90.seconds)
+
+          q.isReadyForExpiration mustEqual false
+
+          time.advance(1.seconds)
+
+          q.isReadyForExpiration mustEqual true
+        }
+      }
+    }
+
+    "active queue expires maxQueueAge after last remove even if it didn't return anything" in {
+      withTempFolder {
+        Time.withCurrentTimeFrozen { time =>
+          val config = new QueueBuilder {
+            keepJournal = false
+            maxQueueAge = 90.seconds
+          }.apply()
+          val q = new PersistentQueue("wu_tang", folderName, config, timer, scheduler)
+          q.setup()
+
+          time.advance(30.seconds)
+
+          q.isReadyForExpiration mustEqual false
+
+          q.remove mustEqual None
+
+          q.isReadyForExpiration mustEqual false
+
+          time.advance(61.seconds)
+
+          q.isReadyForExpiration mustEqual false
+
+          time.advance(30.seconds)
+
+          q.isReadyForExpiration mustEqual true
+        }
+      }
+    }
+
+    "active queue does not expire if there are open transactions" in {
+      withTempFolder {
+        Time.withCurrentTimeFrozen { time =>
+          val config = new QueueBuilder {
+            keepJournal = false
+            maxQueueAge = 90.seconds
+          }.apply()
+          val q = new PersistentQueue("wu_tang", folderName, config, timer, scheduler)
+          q.setup()
+
+          q.isReadyForExpiration mustEqual false
+
+          q.add("method man".getBytes, None) mustEqual true
+          val item = q.remove(true)
+
+          q.length mustEqual 0
+          q.openTransactionCount mustEqual 1
+
+          q.isReadyForExpiration mustEqual false
+
+          time.advance(91.seconds)
+
+          q.isReadyForExpiration mustEqual false
+
+          q.confirmRemove(item.get.xid)
+
+          // confirmRemove() resets the last access timestamp
+          time.advance(91.seconds)
+
           q.isReadyForExpiration mustEqual true
         }
       }
