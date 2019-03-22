@@ -1,7 +1,7 @@
 Twirl.settings
 
 resolvers ++= Seq(
-  "twitter" at "http://maven.twttr.com/"
+  "twitter" at "https://maven.twttr.com/"
 )
 
 addSbtPlugin("com.twitter" %% "sbt-package-dist" % "1.1.0")
