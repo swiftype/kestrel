@@ -12,9 +12,9 @@ version := "2.4.4-SWIFTYPE08"
 
 scalaVersion := "2.9.2"
 
-resolvers ++= Seq(
-  "twitter" at "http://maven.twttr.com/",
-  "sonatype" at "https://oss.sonatype.org/content/repositories/scala-tools",
+resolvers := Seq(
+  DefaultMavenRepository,
+  "twitter" at "https://maven.twttr.com/",
   "vendored" at ("file://" + file("").absolutePath + "/vendor")
 )
 
