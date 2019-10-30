@@ -18,7 +18,12 @@ end
 #-------------------------------------------------------------------------------
 task :default => :package_dist
 
-desc "Build package"
+desc 'Build package'
 task :package_dist do
   sh "JAVA_OPTS='-Dhttps.protocols=TLSv1.1,TLSv1.2' #{sbt_binary} package-dist"
+end
+
+desc 'Clean the build directory'
+task :clean do
+  sh "#{sbt_binary} clean"
 end
