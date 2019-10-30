@@ -90,7 +90,23 @@ class QueueCollection(queueFolder: String, timer: Timer, journalSyncScheduler: S
   // preload any queues
   def loadQueues() {
     val startupDesc = Some(() => "<startup>")
-    Journal.getQueueNamesFromFolder(path) map { queue(_, startupDesc) }
+    val queue_names = Journal.getQueueNamesFromFolder(path)
+
+    log.info(
+      "Preloading %d queues in parallel using up to %d threads",
+      queue_names.size,
+      collection.parallel.ForkJoinTasks.defaultForkJoinPool.getParallelism
+    )
+
+    queue_names.par.foreach { queueName =>
+      log.info("Starting preload of a queue %s (thread %s)", queueName, Thread.currentThread().getId().toString)
+      queue(
+        name = queueName,
+        create = true,
+        sessionDescription = startupDesc,
+        initialPreload = true
+      )
+    }
     createAliases()
   }
 
@@ -150,49 +166,54 @@ class QueueCollection(queueFolder: String, timer: Timer, journalSyncScheduler: S
    * Get a named queue, creating it if necessary.
    */
   def queue(name: String, sessionDescription: SessionDescription = None): Option[PersistentQueue] =
-    queue(name, true, sessionDescription)
+    queue(name, true, sessionDescription, false)
 
   /**
    * Get a named queue, optionally creating it if it does not already exist.
    */
   def queue(name: String, create: Boolean): Option[PersistentQueue] =
-    queue(name, create, None)
+    queue(name, create, None, false)
 
   /**
    * Get a named queue, with control over whether non-existent queues are created.
    */
-  def queue(name: String, create: Boolean, sessionDescription: SessionDescription): Option[PersistentQueue] =
-    if (shuttingDown) {
-      None
-    } else if (create) {
-      queues.get(name) orElse {
+  def queue(name: String, create: Boolean, sessionDescription: SessionDescription, initialPreload: Boolean): Option[PersistentQueue] = {
+    if (shuttingDown) { return None }
+    if (!create) { return queues.get(name) }
+
+    queues.get(name) orElse {
+      if (initialPreload) {
+        createQueue(name, sessionDescription)
+      } else {
         getOrCreateQueue(name, sessionDescription)
       }
-    } else {
-      queues.get(name)
     }
+  }
 
-  private def getOrCreateQueue(name: String, sessionDescription: SessionDescription): Option[PersistentQueue] =
+  private def getOrCreateQueue(name: String, sessionDescription: SessionDescription): Option[PersistentQueue] = {
     synchronized {
-      if (shuttingDown) {
-        return None
-      }
+      if (shuttingDown) { return None }
       queues.get(name) orElse {
-        // only happens when creating a queue for the first time.
-        val q = if (name contains '+') {
-          val master = name.split('+')(0)
-          val fanoutQ = buildQueue(name, Some(master), path.getPath, sessionDescription)
-          fanout_queues.getOrElseUpdate(master, new mutable.HashSet[String]) += name
-          log.info("Fanout queue %s added to %s by %s", name, master, sessionDescription.getOrElse(unknown)())
-          fanoutQ
-        } else {
-          buildQueue(name, None, path.getPath, sessionDescription)
-        }
-        q.setup
-        queues(name) = q
-        Some(q)
+        createQueue(name, sessionDescription)
       }
     }
+  }
+
+  private def createQueue(name: String, sessionDescription: SessionDescription): Option[PersistentQueue] = {
+    // only happens when creating a queue for the first time.
+    val q = if (name contains '+') {
+      val master = name.split('+')(0)
+      val fanoutQ = buildQueue(name, Some(master), path.getPath, sessionDescription)
+      fanout_queues.getOrElseUpdate(master, new mutable.HashSet[String]) += name
+      log.info("Fanout queue %s added to %s by %s", name, master, sessionDescription.getOrElse(unknown)())
+      fanoutQ
+    } else {
+      buildQueue(name, None, path.getPath, sessionDescription)
+    }
+    q.setup
+    queues(name) = q
+    return Some(q)
+  }
 
   def apply(name: String) = queue(name)
 
