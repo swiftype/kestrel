@@ -1,3 +1,11 @@
+2.4.4-SWIFTYPE09 (version before rebase on top of 2.4.7)
+-----
+- PR #7: Parallel queue preload
+
+2.4.4-SWIFTYPE08 (version before rebase on top of 2.4.7)
+-----
+- No change other than a version number bump for packaging purposes.
+
 2.4.4-SWIFTYPE07 (version before rebase on top of 2.4.7)
 -----
 - PR #5: Improvements to queue expiration process
