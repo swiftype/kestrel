@@ -7,6 +7,7 @@ Use sbt
 Use sbt to build kestrel.
 
     $ brew install sbt
+    $ export JAVA_OPTS='-Dhttps.protocols=TLSv1.1,TLSv1.2'
     $ sbt package-dist
 
 Create IntelliJ Project
@@ -40,14 +41,14 @@ Apply next patch to use current directory.
     @@ -10,7 +10,9 @@ new KestrelConfig {
       textListenPort = 2222
       thriftListenPort = 2229
-    
+
     -  queuePath = "/var/spool/kestrel"
     +  val currentPath = new java.io.File(".").getAbsolutePath
     +
     +  queuePath = currentPath + "/var/spool"
-    
+
       clientTimeout = 30.seconds
-    
+
     @@ -76,7 +78,7 @@ new KestrelConfig {
       loggers = new LoggerConfig {
         level = Level.INFO

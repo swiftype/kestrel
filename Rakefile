@@ -20,5 +20,5 @@ task :default => :package_dist
 
 desc "Build package"
 task :package_dist do
-  sh "#{sbt_binary} package-dist"
+  sh "JAVA_OPTS='-Dhttps.protocols=TLSv1.1,TLSv1.2' #{sbt_binary} package-dist"
 end
