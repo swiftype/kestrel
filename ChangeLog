@@ -1,4 +1,10 @@
-ChangeLog2.4.4-SWIFTYPE09
+ChangeLog
+
+2.4.4-SWIFTYPE10
+-----
+- Removed Zookeeper support and dependency on zookeeper
+
+2.4.4-SWIFTYPE09
 -----
 - PR #7: Parallel queue preload
 

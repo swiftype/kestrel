@@ -44,8 +44,7 @@ class Kestrel(defaultQueueConfig: QueueConfig, builders: List[QueueBuilder], ali
               thriftListenPort: Option[Int], queuePath: String,
               expirationTimerFrequency: Option[Duration], clientTimeout: Option[Duration],
               maxOpenTransactions: Int, connectionBacklog: Option[Int], statusFile: String,
-              defaultStatus: Status, statusChangeGracePeriod: Duration, enableSessionTrace: Boolean,
-              zkConfig: Option[ZooKeeperConfig])
+              defaultStatus: Status, statusChangeGracePeriod: Duration, enableSessionTrace: Boolean)
       extends Service {
   private val log = Logger.get(getClass.getName)
 
@@ -120,10 +119,10 @@ class Kestrel(defaultQueueConfig: QueueConfig, builders: List[QueueBuilder], ali
   def start() {
     log.info("Kestrel config: listenAddress=%s memcachePort=%s textPort=%s queuePath=%s " +
              "expirationTimerFrequency=%s clientTimeout=%s maxOpenTransactions=%d connectionBacklog=%s " +
-             "statusFile=%s defaultStatus=%s statusChangeGracePeriod=%s enableSessionTrace=%s zookeeper=<%s>",
+             "statusFile=%s defaultStatus=%s statusChangeGracePeriod=%s enableSessionTrace=%s",
              listenAddress, memcacheListenPort, textListenPort, queuePath,
              expirationTimerFrequency, clientTimeout, maxOpenTransactions, connectionBacklog,
-             statusFile, defaultStatus, statusChangeGracePeriod, enableSessionTrace, zkConfig)
+             statusFile, defaultStatus, statusChangeGracePeriod, enableSessionTrace)
 
     Stats.setLabel("version", Kestrel.runtime.jarVersion)
 
@@ -156,13 +155,7 @@ class Kestrel(defaultQueueConfig: QueueConfig, builders: List[QueueBuilder], ali
     Stats.addGauge("bytes") { queueCollection.currentBytes.toDouble }
     Stats.addGauge("reserved_memory_ratio") { queueCollection.reservedMemoryRatio }
 
-    serverStatus =
-      zkConfig.map { cfg =>
-        new ZooKeeperServerStatus(cfg, statusFile, timer, defaultStatus,
-                                  statusChangeGracePeriod)
-      } getOrElse {
-        new ServerStatus(statusFile, timer, defaultStatus, statusChangeGracePeriod)
-      }
+    serverStatus = new ServerStatus(statusFile, timer, defaultStatus, statusChangeGracePeriod)
     serverStatus.start()
 
     // finagle setup:
@@ -205,8 +198,6 @@ class Kestrel(defaultQueueConfig: QueueConfig, builders: List[QueueBuilder], ali
       proc
     }
 
-    // Order is important: the main endpoint published in zookeeper is the
-    // first configured protocol in the list: memcache, thrift, text.
     val endpoints =
       memcacheService.map { s => "memcache" -> s.localAddress } ++
       thriftService.map { s => "thrift" -> s.localAddress } ++

@@ -6,7 +6,7 @@ name := "kestrel"
 
 organization := "net.lag"
 
-version := "2.4.4-SWIFTYPE09"
+version := "2.4.4-SWIFTYPE10"
 
 scalaVersion := "2.9.2"
 
@@ -15,7 +15,6 @@ resolvers := Seq(
   "twitter" at "https://maven.twttr.com/",
   "vendored" at ("file://" + file("").absolutePath + "/vendor")
 )
-
 
 libraryDependencies ++= Seq(
   "com.twitter" % "ostrich" % "8.2.9-SWIFTYPE01" force(),
@@ -27,8 +26,6 @@ libraryDependencies ++= Seq(
     exclude("com.twitter", "finagle-core_2.9.2")
     exclude("com.twitter", "finagle-thrift_2.9.2")
     exclude("com.twitter", "util-core_2.9.2"),
-  "com.twitter.common.zookeeper" % "server-set" % "1.0.16"
-    exclude("com.twitter.common", "args"),
   "org.scala-tools.testing" %% "specs" % "1.6.9" % "test",
   "org.jmock" % "jmock" % "2.4.0" % "test",
   "cglib" % "cglib" % "2.1_3" % "test",

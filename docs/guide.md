@@ -30,7 +30,6 @@ know about each other, and don't do any cross-communication, so you can add as
 many as you like. The simplest clients have a list of all servers in the
 cluster, and pick one at random for each operation. In this way, each queue
 appears to be spread out across every server, with items in a loose ordering.
-More advanced clients can find kestrel servers via ZooKeeper.
 
 When kestrel starts up, it scans the journal folder and creates queues based
 on any journal files it finds there, to restore state to the way it was when
@@ -467,58 +466,6 @@ continue to allow restricted operations to continue before it begins rejecting
 them. This allows clients that are aware of the kestrel server's status a
 grace period to learn the new status and cease the forbidden operations before
 beginning to encounter errors.
-
-### ZooKeeper Server Sets ###
-
-Kestrel uses Twitter's ServerSet library to support client discovery of kestrel
-servers allowing a given operation. The ServerSet class is documented here:
-[ServerSet](http://twitter.github.com/commons/apidocs/index.html#com.twitter.common.zookeeper.ServerSet)
-
-If the optional `zookeeper` field of `KestrelConfig` is specified, kestrel will
-attempt to use the given configuration to join a logical set of kestrel servers.
-The ZooKeeper host, port and other connection options are documented here:
-[ZooKeeperBuilder](http://robey.github.com/kestrel/api/main/api/net/lag/kestrel/config/ZooKeeperBuilder.html)
-
-Kestrel servers will join 0, 1, or 2 server sets depending on their current
-status. When `Up`, the server joins two server sets: one for writes and one for
-reads. When `ReadOnly`, the server joins only the read set. When `Quiescent`,
-the server joins no sets. ZooKeeper-aware kestrel clients can watch the
-server set for changes and adjust their connections accordingly. The
-`statusChangeGracePeriod` configuration option may be used to allow clients
-time to detect and react to the status change before they begin receiving
-errors from kestrel.
-
-The ZooKeeper path used to register the server set is based on the `pathPrefix`
-option. Kestrel automatically appends `/write` and `/read` to distinguish the
-write and read sets.
-
-Kestrel advertises all of its endpoints in each server set that it joins.
-The default endpoint is memcache, if configured. The default endpoint falls
-back to the thrift endpoint and then the text protocol endpoint. All three
-endpoints are advertised as additional endpoints under the names `memcache`,
-`thrift` and `text`.
-
-Kestrel advertises only a single IP address per endpoint. This IP address is
-based on Kestrel's `listenAddress`. If the listener address is the wildcard
-address (e.g., `0.0.0.0` or `::`), Kestrel will advertise the first IP address
-it finds by traversing the host's configured network interfaces (via
-`java.net.NetworkInterface`). If your host has multiple, valid external IP
-addresses you can choose the advertised address by setting the listener address
-to that IP. Finally, If the listener address is a loopback address (e.g.,
-`127.0.0.1` or `::1`), Kestrel will not start, since advertising a loopback
-address on ZooKeeper will not work and no external host could connect to
-Kestrel in any event.
-
-Consider setting the  `defaultStatus` option to `Quiescent` to prevent kestrel
-from prematurely advertising its status via ZooKeeper.
-
-Installations that require additional customization of ZooKeeper credentials,
-or other site-specific ZooKeeper initialization can override the
-`clientInitializer` and `serverSetInitializer` options to invoke the
-necessary site-specific code. The recommended implementation is to place
-the site-specific code in its own JAR file, take the necessary steps to
-include the JAR in kestrel's class path, and place as little logic as possible
-in the kestrel configuration file.
 
 
 Server stats
