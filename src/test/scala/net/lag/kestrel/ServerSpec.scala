@@ -53,10 +53,12 @@ class ServerSpec extends SpecificationWithJUnit with TempFolder with TestLogging
     val statusFile = new File(canonicalFolderName, ".status")
     kestrel = new Kestrel(defaultConfig, List(weatherUpdatesConfig), List(aliasWeatherUpdatesConfig),
       "localhost", Some(PORT), None, None, canonicalFolderName, None, None, 1, None, statusFile.getPath,
-      Up, 30.seconds, false)
+      Up, 30.seconds, false,
+      enableElasticAPM = false,
+      elasticAPMConfig = scala.collection.immutable.Map("service_name" -> "Kestrel")
+    )
     kestrel.start()
   }
-
 
   "Server" should {
     doAfter {

@@ -17,6 +17,8 @@
 
 package net.lag.kestrel
 
+import co.elastic.apm.attach.ElasticApmAttacher
+
 import com.twitter.concurrent.NamedPoolThreadFactory
 import com.twitter.conversions.time._
 import com.twitter.finagle.{ClientConnection, Codec => FinagleCodec, Service => FinagleService}
@@ -37,15 +39,29 @@ import java.util.concurrent.atomic.AtomicInteger
 import org.apache.thrift.protocol.TBinaryProtocol
 import org.jboss.netty.util.{HashedWheelTimer, Timer => NettyTimer}
 import scala.collection.{immutable, mutable}
+import scala.collection.JavaConversions.mapAsJavaMap
 import config._
 
-class Kestrel(defaultQueueConfig: QueueConfig, builders: List[QueueBuilder], aliases: List[AliasBuilder],
-              listenAddress: String, memcacheListenPort: Option[Int], textListenPort: Option[Int],
-              thriftListenPort: Option[Int], queuePath: String,
-              expirationTimerFrequency: Option[Duration], clientTimeout: Option[Duration],
-              maxOpenTransactions: Int, connectionBacklog: Option[Int], statusFile: String,
-              defaultStatus: Status, statusChangeGracePeriod: Duration, enableSessionTrace: Boolean)
-      extends Service {
+class Kestrel(
+  defaultQueueConfig: QueueConfig,
+  builders: List[QueueBuilder],
+  aliases: List[AliasBuilder],
+  listenAddress: String,
+  memcacheListenPort: Option[Int],
+  textListenPort: Option[Int],
+  thriftListenPort: Option[Int],
+  queuePath: String,
+  expirationTimerFrequency: Option[Duration],
+  clientTimeout: Option[Duration],
+  maxOpenTransactions: Int,
+  connectionBacklog: Option[Int],
+  statusFile: String,
+  defaultStatus: Status,
+  statusChangeGracePeriod: Duration,
+  enableSessionTrace: Boolean,
+  enableElasticAPM: Boolean,
+  elasticAPMConfig: Map[String, String]
+) extends Service {
   private val log = Logger.get(getClass.getName)
 
   var queueCollection: QueueCollection = null
@@ -125,6 +141,11 @@ class Kestrel(defaultQueueConfig: QueueConfig, builders: List[QueueBuilder], ali
              statusFile, defaultStatus, statusChangeGracePeriod, enableSessionTrace)
 
     Stats.setLabel("version", Kestrel.runtime.jarVersion)
+
+    if (enableElasticAPM) {
+      log.info("Enabling Elastic APM with config %s", elasticAPMConfig.toString)
+      ElasticApmAttacher.attach(mapAsJavaMap(elasticAPMConfig))
+    }
 
     // this means no timeout will be at better granularity than 100 ms.
     val nettyTimer = new HashedWheelTimer(100, TimeUnit.MILLISECONDS)

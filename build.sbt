@@ -33,7 +33,8 @@ libraryDependencies ++= Seq(
   "org.objenesis" % "objenesis" % "1.1" % "test",
   "org.hamcrest" % "hamcrest-all" % "1.1" % "test",
   "junit" % "junit" % "4.12" % "test",
-  "org.apache.thrift" % "libthrift" % "0.9.2"
+  "org.apache.thrift" % "libthrift" % "0.9.2",
+  "co.elastic.apm" % "apm-agent-attach" % "1.11.0"
 )
 
 logBuffered in Test := false

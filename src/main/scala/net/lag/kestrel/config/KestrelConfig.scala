@@ -123,11 +123,20 @@ trait KestrelConfig extends ServerConfig[Kestrel] {
    */
   var enableSessionTrace: Boolean = false
 
+  // When true, enabled Elastic APM tracing for the instance
+  var enableElasticAPM: Boolean = false
+  var elasticAPMConfig: Map[String, String] = Map(
+    "service_name" -> "Kestrel",
+    "application_packages" -> "net.lag.kestrel"
+  )
+
   def apply(runtime: RuntimeEnvironment) = {
     new Kestrel(
       default(), queues, aliases, listenAddress, memcacheListenPort, textListenPort, thriftListenPort,
       queuePath, expirationTimerFrequency, clientTimeout, maxOpenTransactions, connectionBacklog,
-      statusFile, defaultStatus, statusChangeGracePeriod, enableSessionTrace
+      statusFile, defaultStatus, statusChangeGracePeriod, enableSessionTrace,
+      enableElasticAPM = enableElasticAPM,
+      elasticAPMConfig = elasticAPMConfig
     )
   }
 
