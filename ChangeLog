@@ -1,3 +1,9 @@
+2.4.8-SWIFTYPE01
+-----
+- Pulled all upstream changes up until 2.4.8
+- Rebased all of our updates on top of upstream
+- Upgraded ostrich to 9.1.1 using our patched 9.1.1 with Marshall's fixes
+
 2.4.4-SWIFTYPE09 (version before rebase on top of 2.4.7)
 -----
 - PR #7: Parallel queue preload

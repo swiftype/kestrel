@@ -159,7 +159,7 @@ class Kestrel(defaultQueueConfig: QueueConfig, builders: List[QueueBuilder], ali
       val beFactory = beFactoryClass map { className =>
         StreamContainerFactory(className)
       } getOrElse new LocalFSContainerFactory(queuePath, statusFile, journalSyncScheduler)
-      
+
       val streamContainer = beFactory.createStreamContainer()
       val statusStore = beFactory.createStatusStore()
 
