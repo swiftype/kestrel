@@ -251,9 +251,11 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
       if (allowRewrites &&
           journal.size >= config.defaultJournalSize.inBytes &&
           queueLength == 0) {
-        log.info("Rewriting journal file for '%s' (qsize=0)", name)
+        val startTime = Time.now
+        log.info("Rewriting journal file for '%s' (qsize=0, openTransactions=%d)", name, openTransactionIds.length)
         journal.rewrite(openTransactionIds.map { openTransactions(_) }, queue)
         totalRewrites.incr()
+        log.info("Journal file(s) rewrite for '%s' is complete. It took %d msec.", name, (Time.now - startTime).inMilliseconds)
         /* KEST 366 - This condition is supposed to be opportunistic and is done frequently
          * with the hope that the journal shrinks to a very small size at the end of this operation
          * as the queue is empty.
@@ -267,26 +269,32 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
       } else if (allowRewrites &&
                  journal.size + journal.archivedSize > config.maxJournalSize.inBytes &&
                  queueSize < config.maxMemorySize.inBytes) {
-        log.info("Rewriting journal file for '%s' (qsize=%d)", name, queueSize)
+        val startTime = Time.now
+        log.info("Rewriting journal file for '%s' (qsize=%d, openTransactions=%d))", name, queueSize, openTransactionIds.length)
         journal.rewrite(openTransactionIds.map { openTransactions(_) }, queue)
         totalRewrites.incr()
         disallowRewritesForDelay()
+        log.info("Journal file(s) rewrite for '%s' is complete. It took %d msec.", name, (Time.now - startTime).inMilliseconds)
       } else if (journal.size > config.maxMemorySize.inBytes) {
         /*
          * If the queue is empty, we should First try re-writing -
          * only if that doesn't help, then rotate the journals
          */
         if (queueLength == 0) {
-          log.info("Rewriting journal file for '%s' (qsize=0)", name)
+          val startTime = Time.now
+          log.info("Rewriting journal file for '%s' (qsize=0, openTransactions=%d)", name, openTransactionIds.length)
           journal.rewrite(openTransactionIds.map { openTransactions(_) }, queue)
           totalRewrites.incr()
+          log.info("Journal file(s) rewrite for '%s' is complete. It took %d msec.", name, (Time.now - startTime).inMilliseconds)
         }
 
         if (journal.size > config.maxMemorySize.inBytes) {
-          log.info("Rotating journal file for '%s' (qsize=%d)", name, queueSize)
+          val startTime = Time.now
+          log.info("Rotating journal file for '%s' (qsize=%d, openTransactions=%d)", name, queueSize, openTransactionIds.length)
           val setCheckpoint = (journal.size + journal.archivedSize > config.maxJournalSize.inBytes)
           journal.rotate(openTransactionIds.map { openTransactions(_) }, setCheckpoint)
           totalRotates.incr()
+          log.info("Journal file(s) rotation for '%s' is complete. It took %d msec.", name, (Time.now - startTime).inMilliseconds)
         }
       }
     }
@@ -296,9 +304,11 @@ class PersistentQueue(val name: String, persistencePath: String, @volatile var c
   def forceRewrite() {
     synchronized {
       if (config.keepJournal) {
-        log.info("Rewriting journal file for '%s' (qsize=%d)", name, queueSize)
+        val startTime = Time.now
+        log.info("Rewriting journal file for '%s' (qsize=%d, openTransactions=%d)", name, queueSize, openTransactionIds.length)
         journal.rewrite(openTransactionIds.map { openTransactions(_) }, queue)
         totalRewrites.incr()
+        log.info("Journal file(s) rewrite for '%s' is complete. It took %d msec.", name, (Time.now - startTime).inMilliseconds)
       }
     }
   }
