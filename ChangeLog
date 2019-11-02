@@ -3,6 +3,7 @@
 - Pulled all upstream changes up until 2.4.8
 - Rebased all of our updates on top of upstream
 - Upgraded ostrich to 9.1.1 using our patched 9.1.1 with Marshall's fixes
+- Added extra logging around journal rotation (allowing us to see if there are any slow rotates)
 
 2.4.4-SWIFTYPE09 (version before rebase on top of 2.4.7)
 -----
