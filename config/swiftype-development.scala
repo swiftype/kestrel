@@ -79,8 +79,9 @@ new KestrelConfig {
     new QueueBuilder {
       name = "fetched_responses"
       maxQueueAge = None
-      maxMemorySize = 256.megabytes
-        maxSize = 256.megabytes
+      maxMemorySize = 512.megabytes
+      defaultJournalSize = 512.megabytes
+      maxSize = 512.megabytes
     },
     new QueueBuilder {
       name = "http_fetcher"

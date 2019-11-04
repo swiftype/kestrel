@@ -9,4 +9,4 @@ while [ -h "$SOURCE" ]; do
 done
 ROOT_DIR="$(cd -P "$(dirname "$SOURCE")"/.. && pwd)"
 
-java -server -Xmx1024m -Dstage=swiftype-development -jar "$ROOT_DIR"/@DIST_NAME@-@VERSION@.jar -D 'com.twitter.finagle.netty3.numWorkers=8'
+java -server -Xmx2048m -Dstage=swiftype-development -jar "$ROOT_DIR"/@DIST_NAME@-@VERSION@.jar -D 'com.twitter.finagle.netty3.numWorkers=16'

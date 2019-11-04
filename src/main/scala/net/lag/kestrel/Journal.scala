@@ -160,18 +160,27 @@ class Journal(queuePath: PersistentStreamContainer, queueName: String, syncPerio
 
   // Directly invoked only by tests
   def rewrite(reservedItems: Seq[QItem], queue: Iterable[QItem], failPoint: Failpoint) {
+    log.info("Closing the writer for queue '%s'...", queueName)
     writer.close()
+
+    log.info("Writing open transaction items for queue '%s'...", queueName)
     val tempFile = uniqueFile("~~")
+    log.info(" - Opening temp file for queue '%s'...", queueName)
     open(getStream(tempFile))
+    log.info(" - Dumping %d reserved items and %d queue items for queue '%s'...", reservedItems.length, queue.size, queueName)
     dump(reservedItems, queue)
+    log.info(" - Closing the temp writer items for queue '%s'...", queueName)
     writer.close()
+    log.info(" - Done dumping open transactions for queue '%s'...", queueName)
 
     if (Failpoint.RewriteFPBeforePack == failPoint) return
 
+    log.info("Renaming the temp file for queue '%s'...", queueName)
     val packFile = uniqueFile(".", ".pack")
     queuePath.renameStream(tempFile, packFile)
 
     // cleanup the .pack file:
+    log.info("Finding all archived files for queue '%s'...", queueName)
     val files = Journal.archivedFilesForQueue(queuePath, queueName)
 
     // TODO: Failure at this point causes incorrect recovery =>
@@ -182,31 +191,43 @@ class Journal(queuePath: PersistentStreamContainer, queueName: String, syncPerio
     // Its fine if fail after this point before renaming the file.
     // This leaves the journal in no different state that what would
     // happen if we failed in the middle of journal rotation
+    log.info("Delete stream for queue '%s'...", queueName)
     queuePath.deleteStream(queueName)
 
     if (Failpoint.RewriteFPAfterDelete == failPoint) return
 
+    log.info("Rename stream for queue '%s'...", queueName)
     queuePath.renameStream(files(0), queueName)
+
+    log.info("calculateArchiveSize for queue '%s'...", queueName)
     calculateArchiveSize()
+
+    log.info("Openiing the queue '%s'...", queueName)
     open()
+    log.info("Done the queue '%s'...", queueName)
   }
 
   def dump(reservedItems: Iterable[QItem], openItems: Iterable[QItem], pentUpDeletes: Int, queue: Iterable[QItem]) {
     size = 0
+    log.info("    - Dumping reserved items...")
     for (item <- reservedItems) {
       add(item)
       removeTentative(item.xid)
     }
+    log.info("    - Dumping open items...")
     for (item <- openItems) {
       add(item)
     }
+    log.info("    - Dumping pentUpDeletes items...")
     val empty = Array[Byte]()
     for (i <- 0 until pentUpDeletes) {
       add(false, QItem(Time.now, None, empty, 0))
     }
+    log.info("    - Dumping queue items...")
     for (item <- queue) {
       add(false, item)
     }
+    log.info("    - Done dumping!")
   }
 
   def dump(reservedItems: Iterable[QItem], queue: Iterable[QItem]) {
